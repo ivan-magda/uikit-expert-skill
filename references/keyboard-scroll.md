@@ -662,3 +662,15 @@ The decision tree for keyboard handling in 2024–2026 is straightforward. **For
 When supporting older versions, the notification-based approach requires three non-negotiable steps: convert the keyboard frame from screen to view coordinates, subtract `view.safeAreaInsets.bottom` from the height, and bit-shift the animation curve by 16 to create `UIView.AnimationOptions`. Always read `adjustedContentInset` (not `contentInset`) when calculating visible content area. For input bars, set `autoresizingMask = .flexibleHeight`, override `intrinsicContentSize`, and clean up in `viewDidDisappear` to avoid the `inputAccessoryView` retain cycle.
 
 On iOS 26, the new strongly typed `NotificationCenter.Message` APIs eliminate the most error-prone part of the legacy approach — though if you're targeting iOS 26, you should already be using `UIKeyboardLayoutGuide` instead of notifications entirely.
+---
+
+## Summary Checklist
+
+- [ ] `UIKeyboardLayoutGuide` (iOS 15+) used — not manual keyboard notification handling
+- [ ] Content bottom anchored to `view.keyboardLayoutGuide.topAnchor`
+- [ ] iPad: `followsUndockedKeyboard = true` set for floating/split keyboard tracking
+- [ ] ScrollView pinned to keyboard guide handles content insets automatically
+- [ ] Pre-iOS 15 fallback converts keyboard frame with `view.convert(_:from: view.window)`
+- [ ] Pre-iOS 15 fallback subtracts `view.safeAreaInsets.bottom` to avoid double-insetting
+- [ ] Notification-based handling matches animation curve from `keyboardAnimationCurveUserInfoKey`
+- [ ] `contentInsetAdjustmentBehavior` set appropriately on scroll views

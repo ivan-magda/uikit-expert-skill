@@ -590,3 +590,17 @@ If a legacy API never calls its completion handler, the continuation is never re
 The retain cycle landscape in Swift has matured but not simplified. The four classical traps — Timer, NotificationCenter, CADisplayLink, and nested closures — remain exactly as dangerous as ever in UIKit codebases. Swift concurrency adds a fifth category where `Task` silently holds objects alive without forming a traditional cycle. **The key insight is that `deinit` is unreliable as a cleanup mechanism** for anything involved in the very cycle you're trying to break; lifecycle methods like `viewWillDisappear` are the correct invalidation point.
 
 Three practices prevent the vast majority of leaks: always use `[weak self]` in escaping closures (unless you can prove lifetime), always declare delegates as `weak var` on `AnyObject`-constrained protocols, and always cancel Tasks in view lifecycle methods rather than `deinit`. Combine that with routine Memory Graph Debugger checks — especially watching instance counts after repeated navigation — and `deinit` print statements during development, and most leaks become visible before they ship. The tools keep improving, but the fundamental discipline remains unchanged: **know your ownership graph, and verify it regularly**.
+---
+
+## Summary Checklist
+
+- [ ] `[weak self]` used in all escaping closures by default
+- [ ] `[unowned self]` reserved only for provable-lifetime cases (lazy var stored closures)
+- [ ] Timer uses block-based API with `[weak self]`; invalidated in `viewWillDisappear`
+- [ ] CADisplayLink uses weak proxy pattern (no block API available)
+- [ ] NotificationCenter closure observer uses `[weak self]`; token removed in `deinit`
+- [ ] Nested stored closures re-capture `[weak self]` (not relying on outer `guard let self`)
+- [ ] Delegates declared as `weak var delegate: SomeDelegate?` on `AnyObject`-constrained protocol
+- [ ] `deinit` print/log implemented for development-time leak verification
+- [ ] Tasks cancelled in `viewWillDisappear` or `viewDidDisappear` — not relying on `deinit`
+- [ ] Memory Graph Debugger used periodically — checking instance counts after repeated navigation

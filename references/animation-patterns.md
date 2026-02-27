@@ -662,3 +662,17 @@ What are you animating?
 ## Conclusion
 
 UIKit's animation stack has matured into a layered system where each API serves a distinct purpose. **`UIView.animate` handles the 80% case** of simple property transitions; iOS 17's spring reparameterization and iOS 18's SwiftUI bridge make it even more capable with minimal code. **`UIViewPropertyAnimator`'s state machine** unlocks the remaining 20%—interactive gestures, scrubbing, reversal, and interruptible animations—but demands careful state management to avoid runtime crashes. **`CABasicAnimation` remains essential** for the layer properties UIKit cannot reach, provided you respect the model-layer-first rule. And iOS 26's `.flushUpdates` option finally resolves one of UIKit's most error-prone patterns: the constraint animation dance. Across all these APIs, the unifying principle is that **Core Animation splits reality into a model layer (truth) and a presentation layer (appearance)**—understanding that split is the foundation of every correct animation pattern in UIKit.
+---
+
+## Summary Checklist
+
+- [ ] Correct API chosen: `UIView.animate` for one-shot, `UIViewPropertyAnimator` for interactive, `CABasicAnimation` for layer properties
+- [ ] `UIView.animate` completion checks `finished` parameter before destructive cleanup
+- [ ] `.allowUserInteraction` added when interaction needed during animation (with model-layer hit-testing awareness)
+- [ ] `UIViewPropertyAnimator` state machine respected: no `finishAnimation` from non-stopped state
+- [ ] `stopAnimation(false)` always followed by `finishAnimation(at:)` before releasing animator
+- [ ] `CABasicAnimation` sets model value BEFORE adding animation to layer
+- [ ] Spring animations use iOS 17+ `UIView.animate(springDuration:bounce:)` when available
+- [ ] Constraint animation pattern: flush layout → update constant → animate `layoutIfNeeded()` on superview
+- [ ] iOS 26+: `.flushUpdates` used for constraint and Observable-driven animation
+- [ ] `UIView.transition` used for discrete changes (images, text) that can't be interpolated

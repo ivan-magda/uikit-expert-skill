@@ -651,3 +651,17 @@ actor ImageDownloader {
 ## Conclusion
 
 Swift concurrency in UIKit has matured from an opt-in experiment to the default programming model. The trajectory is clear: **Swift 6.0 made data races compile-time errors, and Swift 6.2 made MainActor isolation the default** — together eliminating entire categories of threading bugs that plagued GCD-era code. The practical patterns that matter most are storing and cancelling `Task` references in view controller lifecycle methods, preferring `Task {}` over `Task.detached {}` to preserve actor isolation, using `nonisolated` and `@concurrent` to explicitly opt into background execution, and treating every `await` inside an actor as a reentrancy boundary. For teams migrating existing UIKit apps, the recommended path is enabling strict concurrency module-by-module, using `@preconcurrency` conformances as a bridge, and adopting `defaultIsolation(MainActor.self)` once on Swift 6.2 to let the compiler handle what developers previously enforced through discipline alone.
+---
+
+## Summary Checklist
+
+- [ ] No redundant `@MainActor` on `UIViewController` subclasses (already inherited from UIKit)
+- [ ] Task references stored as properties and cancelled in `viewDidDisappear`
+- [ ] `Task.isCancelled` checked after every `await` before UI updates
+- [ ] No `Task.detached` for UI work — using `Task {}` to inherit MainActor isolation
+- [ ] Explicit `@MainActor` on closures or `MainActor.run` when hopping back from background
+- [ ] No `DispatchQueue.main.sync` from background (deadlock) — using `await MainActor.run` instead
+- [ ] `nonisolated` used on methods that don't touch UI to allow background execution
+- [ ] `@preconcurrency` used as bridge for legacy protocol conformances during Swift 6 migration
+- [ ] Actor reentrancy considered: state re-validated after every `await`
+- [ ] Swift 6.2: `defaultIsolation(MainActor.self)` considered for new modules

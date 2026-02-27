@@ -603,3 +603,17 @@ In production, **MetricKit** (iOS 14+) collects hitch data from real user device
 Scroll performance in UIKit is not a single optimization but a **layered discipline**. At the data layer, key your prefetch tasks by stable item IDs and implement cooperative cancellation with `Task.checkCancellation()`. At the cell layer, enforce cancel-clear-verify to prevent stale images, prefer `reconfigureItems` over `reloadItems` to preserve cell state and prefetch work, and pre-compute all expensive formatting in view models. At the layout layer, provide accurate size estimates, cache computed heights, and flatten deep stack view hierarchies — or use manual layout for your hottest cells. At the measurement layer, target a **hitch ratio below 5 ms/s**, automate regression detection with `XCTOSSignpostMetric` or `XCTHitchMetric`, and profile commit vs. render hitches separately in Instruments.
 
 The iOS 15–18 era brought genuinely impactful automatic improvements — cell prefetching, efficient snapshot diffing, `byPreparingForDisplay()`, self-sizing invalidation, and 2–3× faster collection view internals in iOS 17. But these improvements only help if your cell provider doesn't squander the headroom. The code patterns in this guide represent the current state of the art for UIKit scroll performance — tested against Apple's own WWDC sessions (2020 session 10077, 2021 session 10252, 2021 Tech Talks 10855–10857, 2023 session 10055), official sample code, and production-hardened community practice.
+---
+
+## Summary Checklist
+
+- [ ] `UICollectionViewDataSourcePrefetching` implemented for media-heavy lists
+- [ ] Prefetch tasks stored by stable item ID (not IndexPath) in a dictionary
+- [ ] `cancelPrefetchingForItemsAt` cancels tasks for scrolled-past items
+- [ ] `prepareForReuse` cancels in-flight image loading tasks
+- [ ] `prepareForReuse` clears `imageView.image` to prevent stale content flash
+- [ ] Image loading completion verifies cell identity before applying (cancel/clear/verify pattern)
+- [ ] No heavy computation in cell provider / `cellForItemAt` — offload to prefetch or background
+- [ ] `reconfigureItems` used instead of `reloadItems` for in-place content updates
+- [ ] UIStackView nesting kept to ≤2 levels in cells for scroll performance
+- [ ] Estimated dimensions set on layout for self-sizing cells

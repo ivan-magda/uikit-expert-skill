@@ -560,3 +560,17 @@ First, **automatic observation tracking** (available today on iOS 18 with a sing
 Second, the **mandatory scene lifecycle** in iOS 27 SDK builds means migration is no longer optional. Apps that haven't adopted `UISceneDelegate` by the iOS 27 timeframe will crash on launch. TN3187 provides a clear migration path, but the work should start now.
 
 Third, the **API modernization table** above represents a decade of accumulated improvements. Apps still using `textLabel`, string-based cell registration, or `FlowLayout` are leaving significant performance and maintainability gains on the table. The modern APIs aren't just newer — they're fundamentally better abstractions that produce less code, fewer bugs, and faster cells.
+---
+
+## Summary Checklist
+
+- [ ] `UIObservationTrackingEnabled` added to Info.plist for iOS 18+ targets
+- [ ] `@Observable` properties read inside tracked methods (layoutSubviews, updateProperties) register dependencies automatically
+- [ ] No observed properties modified inside tracked methods (prevents update storms / infinite loops)
+- [ ] iOS 26: `updateProperties()` used for content/styling; `layoutSubviews()` reserved for geometry
+- [ ] iOS 26: `.flushUpdates` used for constraint and Observable-driven animation
+- [ ] UIScene lifecycle adopted: `UIApplicationSceneManifest` in Info.plist, window setup in SceneDelegate
+- [ ] Deep links handled per-scene via `scene(_:willConnectTo:options:)` or `scene(_:continue:)`
+- [ ] Liquid Glass: `UIGlassEffect` with `UIVisualEffectView`, gated behind `#available(iOS 26, *)`
+- [ ] iOS 26 floating tab bar: custom `UITabBarAppearance` removed behind `#available` check
+- [ ] All iOS 26+ features gated with `#available` and provide sensible fallbacks

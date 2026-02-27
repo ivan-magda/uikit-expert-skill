@@ -575,3 +575,17 @@ The UIViewController lifecycle in 2024–2026 has a clear decision framework. **
 For child containment, the asymmetry is the key mental model: **`addChild` auto-calls `willMove`; `removeFromParent` auto-calls `didMove`**. You manually supply the other half. Reversing the order doesn't crash — it silently breaks appearance forwarding, which is worse.
 
 Every view controller should ship with a `deinit` print during development. Combine it with the Memory Graph Debugger for retain cycle forensics, and use `[weak self]` in all stored closures and long-lived async tasks. These patterns are simple, mechanical, and catch the majority of UIKit memory leaks before they reach production.
+---
+
+## Summary Checklist
+
+- [ ] `viewDidLoad` contains only one-time, geometry-independent setup (subviews, constraints, delegates)
+- [ ] Geometry-dependent work (layer frames, scroll-to-item, trait-based layout) is in `viewIsAppearing`, not `viewWillAppear` or `viewDidLoad`
+- [ ] `viewWillAppear` is used only for transition coordinator animations or balanced notification registration
+- [ ] `viewDidLayoutSubviews` does NOT add subviews, activate constraints, or call `setNeedsLayout()`
+- [ ] Every lifecycle override calls `super` (forgetting `super.viewWillAppear(animated)` silently breaks UIKit state)
+- [ ] Child VC containment follows exact order: `addChild` → `addSubview` → `didMove(toParent:)`
+- [ ] Child VC removal follows: `willMove(toParent: nil)` → `removeFromSuperview` → `removeFromParent`
+- [ ] `deinit` contains a debug print/log for leak verification during development
+- [ ] No expensive work (network, heavy computation) in `viewWillAppear` — it fires on every tab switch and navigation pop
+- [ ] `loadView` override does NOT call `super.loadView()`

@@ -645,3 +645,18 @@ UICollectionView with list layout gives you everything UITableView offers **plus
 ## Conclusion
 
 The modern UIKit collection view stack is built on four interlocking pillars. **Diffable data sources** demand stable, ID-based identity—store identifiers in snapshots, never full structs, and always prefer `reconfigureItems` over `reloadItems` for in-place content updates. **Compositional layout** replaces flow layout and table view layout with a declarative, composable system where each section can have its own behavior, including orthogonal scrolling. **Type-safe cell registration** eliminates an entire class of string-based runtime crashes. And **list configuration** makes UICollectionView a strict superset of UITableView, rendering the latter unnecessary for new projects. Together, these APIs form a coherent, production-ready architecture that handles everything from simple settings screens to complex, multi-section feeds with heterogeneous layouts—all without a single `reloadData()` call or string-based reuse identifier.
+---
+
+## Summary Checklist
+
+- [ ] Using `UICollectionViewDiffableDataSource` — not legacy `numberOfItemsInSection` / `cellForItemAt`
+- [ ] Item identifiers are stable IDs (UUID, database key) — not full model structs
+- [ ] `Hashable` implementation hashes and compares by ID only — not by mutable content fields
+- [ ] No duplicate identifiers in snapshot (causes `BUG_IN_CLIENT_OF_DIFFABLE_DATA_SOURCE` crash)
+- [ ] `reconfigureItems` used for content updates; `reloadItems` only when cell type changes
+- [ ] `applySnapshotUsingReloadData` used for initial population to bypass diff computation
+- [ ] `UICollectionView.CellRegistration` used — no string-based `register` / `dequeueReusableCell`
+- [ ] `UICollectionViewCompositionalLayout` used for non-trivial layouts — not `FlowLayout`
+- [ ] Section providers cache `NSCollectionLayoutSection` objects where possible
+- [ ] Self-sizing cells use `.estimated()` on both item AND group for the self-sizing axis
+- [ ] Self-sizing cells have unambiguous top-to-bottom constraint chain in `contentView`

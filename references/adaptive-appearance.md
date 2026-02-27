@@ -677,3 +677,18 @@ override var accessibilityElements: [Any]? {
 ## Conclusion
 
 The iOS 17 trait system is a genuine leap: explicit trait registration eliminates wasted callbacks, `traitOverrides` replaces brittle environment manipulation, and `UITraitBridgedEnvironmentKey` unifies UIKit and SwiftUI state propagation. The price is one new mental-model rule — **the handler is not called on registration** — making `viewIsAppearing(_:)` essential for initial configuration. Across Dark Mode, Dynamic Type, and accessibility, the recurring theme is the same: use the *dynamic* version of every API (`UIColor.label` not `.black`, `preferredFont` + `adjustsFontForContentSizeCategory` not `systemFont(ofSize:)`, `.layoutChanged` not silence) and re-resolve the few things that aren't dynamic (`CGColor`, appearance proxies). Getting these patterns right once means your app adapts correctly to every device size, appearance, text size, and assistive technology — now and as Apple adds new traits in the future.
+---
+
+## Summary Checklist
+
+- [ ] `registerForTraitChanges` (iOS 17+) used instead of deprecated `traitCollectionDidChange`
+- [ ] Trait handler uses `self: Self` closure pattern (framework manages lifecycle, no `[weak self]` needed)
+- [ ] Initial state set in `viewIsAppearing` (handler is NOT called on registration)
+- [ ] Dynamic Type: `UIFont.preferredFont(forTextStyle:)` or `UIFontMetrics` for custom fonts
+- [ ] `adjustsFontForContentSizeCategory = true` set on labels/text views for live text-size changes
+- [ ] `numberOfLines = 0` set on labels to allow wrapping at larger text sizes
+- [ ] Dark mode: semantic colors (`.label`, `.systemBackground`) used — not hardcoded colors
+- [ ] `layer.borderColor` / `layer.shadowColor` (CGColor) re-resolved on trait changes
+- [ ] Custom views set `isAccessibilityElement`, `accessibilityLabel`, `accessibilityTraits`
+- [ ] Complex list items use `UIAccessibilityCustomAction` for VoiceOver-accessible actions
+- [ ] Accessibility notifications posted: `.screenChanged`, `.layoutChanged`, `.announcement` as needed

@@ -512,3 +512,16 @@ The `downsample` method is marked `nonisolated` because it's a pure function wit
 The core principle hasn't changed since WWDC 2018: **never decode more pixels than you display**. What has evolved is the ergonomics. ImageIO downsampling remains the lowest-memory option for network images arriving as raw `Data`. The iOS 15+ thumbnail APIs provide a cleaner interface when you already have a `UIImage`. Swift actors eliminate the thread-safety boilerplate that previously required dispatch queues or locks. And `NSCache` with bitmap-cost accounting gives the memory subsystem accurate information for intelligent eviction.
 
 The ImageLoader actor pattern presented here — combining NSCache, ImageIO downsampling, in-flight deduplication, and structured concurrency — covers 80% of production image loading needs without a single dependency. The remaining 20% (disk caching with TTL, animated formats, progressive rendering, image processing pipelines) is where Kingfisher, SDWebImage, or Nuke justify their inclusion. The decision isn't native *versus* third-party — it's knowing exactly which capabilities you're buying and whether the engineering cost of building them yourself exceeds adding a well-maintained dependency.
+---
+
+## Summary Checklist
+
+- [ ] Images downsampled to display size — never loaded at full resolution (12MP = ~48MB decoded)
+- [ ] Downsampling uses ImageIO (`CGImageSourceCreateThumbnailAtIndex`) for maximum memory efficiency
+- [ ] iOS 15+: `byPreparingThumbnail(of:)` or `prepareForDisplay()` used for async decoding when appropriate
+- [ ] Cell image loading follows cancel/clear/verify pattern in `prepareForReuse`
+- [ ] In-flight Task cancelled in `prepareForReuse`; `imageView.image` cleared immediately
+- [ ] Completion verifies cell identity (URL/ID match) before applying image
+- [ ] `NSCache` uses `totalCostLimit` based on decoded bitmap bytes (width × height × 4), not file size
+- [ ] Memory warning observer calls `cache.removeAllObjects()` on `didReceiveMemoryWarningNotification`
+- [ ] SF Symbols use `UIImage(systemName:)` with `SymbolConfiguration` for weight/scale/color

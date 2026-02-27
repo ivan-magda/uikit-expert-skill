@@ -615,3 +615,17 @@ The mental model Ken Ferry offered in 2018 remains the foundation: the engine is
 Three patterns matter above all others. First, **create constraints once and modify them** — never churn. Second, **use 999 instead of 1000** for any constraint whose priority you might change. Third, **batch everything** — `NSLayoutConstraint.activate(_:)`, `updateConstraints()`, or iOS 26's `.flushUpdates` all tell the engine to defer intermediate solves.
 
 iOS 26's `.flushUpdates` is the first major quality-of-life improvement to constraint animation in nearly a decade. It doesn't change what the engine does — it changes what *you* have to remember to do. Combined with `@Observable` tracking and `updateProperties()`, UIKit's layout system in 2025–2026 is moving toward a reactive model where the framework handles invalidation automatically, and developers focus on declaring intent rather than managing engine passes.
+---
+
+## Summary Checklist
+
+- [ ] `translatesAutoresizingMaskIntoConstraints = false` set on every programmatically created view before constraining
+- [ ] Constraints activated via `NSLayoutConstraint.activate([])`, not individual `.isActive = true`
+- [ ] No constraint removal/recreation — using `isActive` toggle or `.constant` modification instead
+- [ ] No priority changes from/to `.required` (1000) at runtime — using 999 for mutable priorities
+- [ ] Constraint identifiers set for debugging (`constraint.identifier = "MyView.height"`)
+- [ ] `updateConstraints()` is idempotent — no remove-all-then-recreate; `super.updateConstraints()` called last
+- [ ] Constraint animation pattern correct: flush → update constant → animate `layoutIfNeeded()` on superview
+- [ ] No `setNeedsLayout()` or `setNeedsUpdateConstraints()` inside `layoutSubviews` or `viewDidLayoutSubviews`
+- [ ] UIStackView nesting limited to 1–2 levels in reusable cells
+- [ ] iOS 26+: `.flushUpdates` used for constraint animation where available

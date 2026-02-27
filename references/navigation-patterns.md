@@ -641,3 +641,17 @@ Adopting the new floating tab bar requires five steps: (1) recompile with Xcode 
 The most impactful patterns in this guide address problems that are invisible during development but catastrophic in production. **`setViewControllers` eliminates an entire class of deep-link crashes** that sequential push calls introduce. The **`SafeNavigationController` queuing pattern** prevents the "Can't add self as subview" crash that affects every app with rapid navigation. Setting **all four appearance slots** on `UINavigationBarAppearance` — especially `scrollEdgeAppearance` — fixes the transparent-bar regression that has plagued apps since iOS 15.
 
 For iOS 26, the most critical adaptation is handling the new `interactiveContentPopGestureRecognizer`. Apps with custom pan gestures (maps, carousels, drawers) will see gesture conflicts on day one unless they add `require(toFail:)` relationships. The Liquid Glass design rewards apps that *remove* customization rather than add it — the fewer appearance overrides you apply, the better iOS 26 navigation looks and behaves. Transition toward per-VC configuration via `navigationItem` properties and away from global bar-level mutations, and your navigation stack will be robust across the full iOS 15–26 range.
+---
+
+## Summary Checklist
+
+- [ ] All 4 `UINavigationBarAppearance` slots configured (standard, scrollEdge, compact, compactScrollEdge)
+- [ ] Appearance set on `navigationItem` (per-VC, in `viewDidLoad`) — not on `navigationBar` in `viewWillAppear`
+- [ ] `scrollEdgeAppearance` explicitly set — not left `nil` (causes transparent bar on iOS 15+)
+- [ ] Concurrent transition guard: check `transitionCoordinator` before push/pop, chain via completion
+- [ ] `setViewControllers(_:animated:)` used for deep links — not sequential push calls
+- [ ] `prefersLargeTitles` set once on the bar; `largeTitleDisplayMode` set per VC in `viewDidLoad`
+- [ ] Back button customization: `backBarButtonItem` set on the pushing VC, not the displayed VC
+- [ ] Scroll view for large-title collapse pins to `view.topAnchor`, not `safeAreaLayoutGuide.topAnchor`
+- [ ] `UITabBarAppearance` sets `scrollEdgeAppearance` to prevent transparent tab bar on iOS 15+
+- [ ] iOS 26: custom pan gestures add `require(toFail:)` for `interactiveContentPopGestureRecognizer`

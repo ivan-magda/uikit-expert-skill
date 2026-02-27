@@ -637,3 +637,15 @@ override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexP
 UIKit's configuration system has matured into a **complete, composable, state-driven architecture** for cell styling. The iOS 18 additions — style-agnostic factory methods via `UIListEnvironment`, and automatic `@Observable` tracking (opt-in via plist key, default in iOS 26) — eliminate two of the biggest remaining pain points: hardcoding list styles and manually triggering cell refreshes.
 
 The mental model is straightforward. Create a configuration struct (system-provided or custom), populate it with data, and assign it. For state-dependent styling, use `configurationUpdateHandler` with `updated(for:)` to get system defaults, then layer on custom overrides. For reactive models, adopt `@Observable` and let UIKit handle invalidation. The deprecated `textLabel`/`imageView` path has no remaining advantages — migrating is both safer and more powerful.
+---
+
+## Summary Checklist
+
+- [ ] Using `UIContentConfiguration` (`UIListContentConfiguration`) — not deprecated `textLabel` / `detailTextLabel` / `imageView`
+- [ ] `cell.defaultContentConfiguration()` or factory methods (`.cell()`, `.subtitleCell()`) used correctly
+- [ ] `UIBackgroundConfiguration` used for cell backgrounds — not direct `backgroundColor` manipulation
+- [ ] `configurationUpdateHandler` used for state-dependent styling (selection, highlight) — not subclass overrides
+- [ ] `updated(for: state)` called on configuration inside `configurationUpdateHandler`
+- [ ] Custom configurations conform to `UIContentConfiguration` with `makeContentView()` and `updated(for:)`
+- [ ] Custom content views conform to `UIContentView` with `configuration` property
+- [ ] iOS 18+: `UIObservationTrackingEnabled` considered for reactive cell updates with `@Observable`

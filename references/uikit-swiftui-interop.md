@@ -555,3 +555,17 @@ struct ItemRow: View, Equatable {
 ## Conclusion
 
 The UIKit–SwiftUI bridge is no longer a set of workarounds — it's a first-class, bidirectional integration layer. The three most impactful patterns to internalize: **always use proper view controller containment and retain `UIHostingController`** (the single most common source of mysterious bugs); **put all state-dependent configuration in `updateUIView` with equality guards** to prevent both stale UI and infinite loops; and **prefer `UIHostingConfiguration` over manual `UIHostingController` management in cells** for both correctness and performance. For sizing, `sizeThatFits(_:)` (iOS 16+) is the cleanest solution, with content hugging priorities as the fallback for older targets. For state, `@Observable` (iOS 17+) combined with `UITraitBridgedEnvironmentKey` provides fine-grained, bidirectional data flow that makes the boundary between frameworks nearly invisible. With iOS 26's automatic observation tracking in UIKit, the two frameworks are converging toward a unified programming model.
+---
+
+## Summary Checklist
+
+- [ ] `UIHostingController` uses full child VC containment: `addChild` → `addSubview` → `didMove(toParent:)`
+- [ ] `UIHostingController` retained as a stored property (not a local variable)
+- [ ] `sizingOptions = .intrinsicContentSize` set for Auto Layout containers (iOS 16+)
+- [ ] `sizingOptions = .preferredContentSize` set for popovers (iOS 16+)
+- [ ] `UIViewRepresentable.updateUIView` contains all mutable state updates (not `makeUIView`)
+- [ ] `updateUIView` guards against infinite loops with equality checks before setting values
+- [ ] `UIHostingConfiguration` used for SwiftUI content in collection view cells (iOS 16+)
+- [ ] UIView/UIViewController representable views handle sizing: `intrinsicContentSize`, `.fixedSize()`, or content hugging
+- [ ] `@Observable` + `UITraitBridgedEnvironmentKey` used for state bridging (iOS 17+)
+- [ ] `dismantleUIView` / `dismantleUIViewController` used for cleanup (invalidating timers, removing observers)
