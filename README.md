@@ -2,6 +2,10 @@
 
 An AI Agent Skill for writing correct, performant, and modern UIKit code in Swift. Designed to work with Claude, Cursor, Windsurf, Copilot, and other AI coding assistants that support the Agent Skills / AGENTS.md format.
 
+<p align="center">
+  <img src="demo.gif" alt="Install uikit-expert skill" width="800">
+</p>
+
 ## Philosophy
 
 This skill focuses on **facts and best practices**, not architectural opinions:
