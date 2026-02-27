@@ -64,6 +64,7 @@ class HTMLElement {
 **Parent-child relationships with guaranteed lifetimes:** When a child object structurally cannot outlive its parent, `unowned` expresses this correctly:
 
 ```swift
+// ✅ Safe: unowned is correct when parent structurally outlives child
 class Parent {
     var child: Child?
     init() { child = Child(parent: self) }

@@ -546,6 +546,7 @@ The `manuallyStop` + `stopMeasuring()` pattern ensures the reset swipe-down isn'
 Using the dedicated `XCTHitchMetric` (available in recent Xcode versions):
 
 ```swift
+// ✅ GOOD: Dedicated hitch metric for simpler scroll tests
 func testScrollHitchRate() {
     let app = XCUIApplication()
     app.launch()
@@ -561,6 +562,7 @@ func testScrollHitchRate() {
 For custom animations, instrument your code with `os_signpost` and create a targeted metric:
 
 ```swift
+// ✅ GOOD: Custom os_signpost instrumentation for animation hitch testing
 // In app code:
 import os.signpost
 let log = OSLog(subsystem: "com.app", category: .pointsOfInterest)

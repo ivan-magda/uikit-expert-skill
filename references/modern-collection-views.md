@@ -245,6 +245,7 @@ section.orthogonalScrollingBehavior = .groupPaging
 Orthogonal sections do **not** trigger `UIScrollViewDelegate`. To react to scroll position (e.g., for parallax or scale effects), use `visibleItemsInvalidationHandler`:
 
 ```swift
+// ✅ Correct: use visibleItemsInvalidationHandler for scroll-driven effects
 section.visibleItemsInvalidationHandler = { visibleItems, scrollOffset, environment in
     let centerX = scrollOffset.x + environment.container.contentSize.width / 2
     for item in visibleItems {
@@ -383,6 +384,7 @@ dataSource.supplementaryViewProvider = { [weak self] cv, kind, indexPath in
 Swipe actions are set on the **layout configuration**, not on a delegate method:
 
 ```swift
+// ✅ Correct: configure swipe actions on the layout, not a delegate method
 var config = UICollectionLayoutListConfiguration(appearance: .plain)
 
 config.trailingSwipeActionsConfigurationProvider = { indexPath in
@@ -411,6 +413,7 @@ config.leadingSwipeActionsConfigurationProvider = { indexPath in
 `UICollectionViewListCell.accessories` accepts an array of `UICellAccessory` values. Each accessory has a `displayed:` parameter controlling visibility in editing vs. non-editing modes.
 
 ```swift
+// ✅ Correct: configure accessories via UICellAccessory array
 cell.accessories = [
     .disclosureIndicator(),                          // trailing chevron
     .checkmark(),                                     // trailing checkmark
@@ -427,6 +430,7 @@ cell.accessories = [
 ### Separators and headers
 
 ```swift
+// ✅ Correct: separator and header configuration on the layout
 var config = UICollectionLayoutListConfiguration(appearance: .insetGrouped)
 config.headerMode = .supplementary      // or .firstItemInSection
 config.footerMode = .supplementary
@@ -566,7 +570,7 @@ let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout
 **Step 2 — Replace cell registration and configuration:**
 
 ```swift
-// Before (deprecated textLabel API)
+// ❌ Before (deprecated textLabel API)
 tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
 // In delegate:
 let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
@@ -575,7 +579,7 @@ cell.detailTextLabel?.text = item.detail  // deprecated
 cell.imageView?.image = item.icon         // deprecated
 cell.accessoryType = .disclosureIndicator
 
-// After (modern content configuration)
+// ✅ After (modern content configuration)
 let reg = UICollectionView.CellRegistration<UICollectionViewListCell, Item> {
     cell, indexPath, item in
     var content = cell.defaultContentConfiguration()

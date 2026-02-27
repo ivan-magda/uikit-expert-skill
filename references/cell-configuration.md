@@ -247,6 +247,7 @@ class MyCell: UICollectionViewListCell {
 You can define custom state that participates in configuration updates via **`UIConfigurationStateCustomKey`**:
 
 ```swift
+// ✅ Correct: custom state key with typed accessor and configurationState override
 // 1. Declare the key
 extension UIConfigurationStateCustomKey {
     static let isArchived = UIConfigurationStateCustomKey("com.myapp.isArchived")
