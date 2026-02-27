@@ -188,6 +188,7 @@ Use this skill to build, review, or improve UIKit features with correct lifecycl
 - [ ] Constraints activated via `NSLayoutConstraint.activate([])`
 - [ ] No constraint removal/recreation — using `isActive` toggle or `.constant` modification
 - [ ] No priority changes from/to `.required` (1000) at runtime
+- [ ] No `setNeedsLayout()` inside `layoutSubviews` or `viewDidLayoutSubviews` (infinite loop)
 - [ ] Constraint identifiers set for debugging
 
 ### Collection Views
@@ -195,6 +196,7 @@ Use this skill to build, review, or improve UIKit features with correct lifecycl
 - [ ] `reconfigureItems` for content updates, not `reloadItems`
 - [ ] `CellRegistration` instead of string-based register/dequeue
 - [ ] `UIContentConfiguration` instead of deprecated cell properties
+- [ ] No duplicate identifiers in snapshot (`BUG_IN_CLIENT` crash)
 - [ ] Self-sizing cells have unambiguous top-to-bottom constraint chain
 
 ### Navigation
@@ -213,20 +215,26 @@ Use this skill to build, review, or improve UIKit features with correct lifecycl
 ### Memory Management
 - [ ] `[weak self]` in all escaping closures
 - [ ] Timers use block-based API with `[weak self]`; invalidated in `viewWillDisappear`
+- [ ] Task references stored and cancelled in `viewDidDisappear`
 - [ ] CADisplayLink uses weak proxy pattern
 - [ ] Delegates declared as `weak var` on `AnyObject`-constrained protocol
 - [ ] No strong self re-capture in nested stored closures
 
 ### Concurrency
-- [ ] Task references stored and cancelled in `viewDidDisappear`
 - [ ] `Task.isCancelled` checked after `await` before UI updates
 - [ ] No `Task.detached` for UI work without explicit `MainActor.run`
+- [ ] No redundant `@MainActor` on `UIViewController` subclasses (already inherited)
 - [ ] No `DispatchQueue.main.sync` from background
 
 ### Image Loading
 - [ ] Images downsampled to display size (not loaded at full resolution)
 - [ ] Cell image loading: cancel in `prepareForReuse`, clear image, verify identity
 - [ ] `NSCache` sized by decoded bitmap bytes, not file size
+
+### UIKit–SwiftUI Interop
+- [ ] `UIHostingController` retained as stored property (not local variable)
+- [ ] `UIHostingController` uses full child VC containment (`addChild` → `addSubview` → `didMove`)
+- [ ] `updateUIView` guards against infinite update loops with equality checks
 
 ### Keyboard
 - [ ] Using `UIKeyboardLayoutGuide` (iOS 15+) instead of keyboard notifications
