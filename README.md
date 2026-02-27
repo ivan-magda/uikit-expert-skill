@@ -6,11 +6,16 @@ An AI Agent Skill for writing correct, performant, and modern UIKit code in Swif
 
 This skill focuses on **facts and best practices**, not architectural opinions:
 
-- ✅ Correctness — lifecycle ordering, retain cycle prevention, thread safety
-- ✅ Performance — constraint churn avoidance, scroll optimization, image downsampling
-- ✅ Modern APIs — diffable data sources, compositional layout, cell configuration, Observation
-- ❌ No architecture mandates — no MVVM/VIPER/Coordinator enforcement
-- ❌ No formatting rules — no property ordering or file structure requirements
+**Covered:**
+
+- Correctness — lifecycle ordering, retain cycle prevention, thread safety
+- Performance — constraint churn avoidance, scroll optimization, image downsampling
+- Modern APIs — diffable data sources, compositional layout, cell configuration, Observation
+
+**Intentionally excluded:**
+
+- No architecture mandates — no MVVM/VIPER/Coordinator enforcement
+- No formatting rules — no property ordering or file structure requirements
 
 ## Structure
 
@@ -39,7 +44,7 @@ uikit-expert-skill/
 
 **SKILL.md** acts as a decision tree router. Based on user intent (review / improve / implement), it directs the AI agent to the relevant reference documents. Each reference document is self-contained with:
 
-- Concrete ✅ correct and ❌ incorrect Swift code examples
+- Concrete correct and incorrect Swift code examples
 - "Why" explanations for each recommendation
 - Summary checklists at the bottom
 
