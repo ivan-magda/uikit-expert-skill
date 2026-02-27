@@ -31,14 +31,14 @@ This document provides guidance for AI agents working with this skill to ensure 
 
 **Exception**: Suggest separating business logic for testability without enforcing how.
 
-### 4. No Tool-Specific Instructions
-**Agents cannot use external tools.** Do not include:
+### 4. No Tool-Specific Instructions in Agent Output
+**Agents cannot use external tools.** When responding to users, do not reproduce:
 - Xcode Instruments profiling step-by-step instructions
 - Debugging tool walkthroughs
 - IDE-specific feature instructions
 - Command-line tool usage beyond basic git
 
-**Exception**: Mention that users can profile with Instruments or use Memory Graph Debugger if issues arise, but don't provide detailed instructions.
+Reference files may contain detailed tool walkthroughs (Instruments, Memory Graph Debugger, LLDB) as developer documentation. **Do not reproduce these step-by-step instructions in your responses.** Instead, briefly mention that the user can use the relevant tool (e.g., "consider profiling with Instruments" or "use the Memory Graph Debugger to investigate retain cycles").
 
 ## Content Guidelines
 
@@ -95,7 +95,7 @@ This document provides guidance for AI agents working with this skill to ensure 
 - Swift concurrency deep dives (actors, structured concurrency theory)
 - Code formatting and style rules
 - Architectural patterns and mandates
-- Tool usage instructions (Instruments, debuggers)
+- Tool usage step-by-step instructions in responses (Instruments, debuggers — reference files may contain these)
 - File organization requirements
 - Testing frameworks and patterns
 - Build system configuration
@@ -113,7 +113,7 @@ This document provides guidance for AI agents working with this skill to ensure 
 ### Avoid Prescriptive Language:
 - ❌ "You must organize your view controllers like this"
 - ❌ "Always use MVVM with coordinators"
-- ❌ "Profile with Instruments following these steps"
+- ❌ "Profile with Instruments following these steps" (instead: "consider profiling with Instruments")
 - ❌ "Structure your project like this"
 
 ## Common AI Generator Mistakes to Correct
