@@ -1,0 +1,35 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "uikit-expert-skill",
+  "version": "1.0.0",
+  "owner": {
+    "name": "Ivan Magda"
+  },
+  "metadata": {
+    "description": "UIKit best practices for lifecycle, Auto Layout, collection views, memory management, and modern API adoption."
+  },
+  "plugins": [
+    {
+      "name": "uikit-expert",
+      "description": "Expert UIKit guidance for lifecycle, Auto Layout, collection views, memory management, concurrency, and modern API adoption.",
+      "repository": "https://github.com/ivan-magda/uikit-expert-skill",
+      "version": "1.0.0",
+      "author": {
+        "name": "Ivan Magda"
+      },
+      "license": "MIT",
+      "category": "development",
+      "keywords": [
+        "swift",
+        "uikit",
+        "ios",
+        "apple",
+        "auto-layout",
+        "collection-views",
+        "memory-management",
+        "performance"
+      ],
+      "source": "./"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "name": "uikit-expert",
+  "version": "1.0.0",
+  "description": "Expert UIKit guidance for lifecycle, Auto Layout, collection views, memory management, concurrency, and modern API adoption.",
+  "author": {
+    "name": "Ivan Magda"
+  },
+  "repository": "https://github.com/ivan-magda/uikit-expert-skill",
+  "license": "MIT",
+  "keywords": [
+    "swift",
+    "uikit",
+    "ios",
+    "apple",
+    "auto-layout",
+    "collection-views",
+    "memory-management",
+    "performance"
+  ],
+  "skills": ["./uikit-expert"]
+}

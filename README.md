@@ -21,23 +21,27 @@ This skill focuses on **facts and best practices**, not architectural opinions:
 
 ```
 uikit-expert-skill/
-├── SKILL.md                                    # Decision tree router (entry point)
+├── .claude-plugin/
+│   ├── plugin.json                             # Claude Code plugin manifest
+│   └── marketplace.json                        # Claude Code marketplace catalog
 ├── AGENTS.md                                   # Meta-rules for AI agents
-└── references/
-    ├── view-controller-lifecycle.md            # Lifecycle ordering, viewIsAppearing
-    ├── auto-layout.md                          # Batch activation, constraint churn, animation
-    ├── modern-collection-views.md              # Diffable, compositional, CellRegistration
-    ├── cell-configuration.md                   # UIContentConfiguration, configurationUpdateHandler
-    ├── list-performance.md                     # Prefetching, cell reuse, scroll performance
-    ├── navigation-patterns.md                  # Bar appearance, concurrent transitions, deep links
-    ├── animation-patterns.md                   # UIView.animate, PropertyAnimator, CAAnimation
-    ├── memory-management.md                    # Retain cycles, [weak self], delegate ownership
-    ├── concurrency-main-thread.md              # @MainActor, Task lifecycle, Swift 6
-    ├── uikit-swiftui-interop.md                # UIHostingController, UIViewRepresentable
-    ├── image-loading.md                        # Downsampling, decoded bitmap math, cell race condition
-    ├── keyboard-scroll.md                      # UIKeyboardLayoutGuide, scroll insets
-    ├── adaptive-appearance.md                  # Traits, Dynamic Type, dark mode, VoiceOver
-    └── modern-uikit-apis.md                    # Observation, updateProperties(), .flushUpdates, UIScene
+└── uikit-expert/
+    ├── SKILL.md                                # Decision tree router (entry point)
+    └── references/
+        ├── view-controller-lifecycle.md        # Lifecycle ordering, viewIsAppearing
+        ├── auto-layout.md                      # Batch activation, constraint churn, animation
+        ├── modern-collection-views.md          # Diffable, compositional, CellRegistration
+        ├── cell-configuration.md               # UIContentConfiguration, configurationUpdateHandler
+        ├── list-performance.md                 # Prefetching, cell reuse, scroll performance
+        ├── navigation-patterns.md              # Bar appearance, concurrent transitions, deep links
+        ├── animation-patterns.md               # UIView.animate, PropertyAnimator, CAAnimation
+        ├── memory-management.md                # Retain cycles, [weak self], delegate ownership
+        ├── concurrency-main-thread.md          # @MainActor, Task lifecycle, Swift 6
+        ├── uikit-swiftui-interop.md            # UIHostingController, UIViewRepresentable
+        ├── image-loading.md                    # Downsampling, decoded bitmap math, cell race condition
+        ├── keyboard-scroll.md                  # UIKeyboardLayoutGuide, scroll insets
+        ├── adaptive-appearance.md              # Traits, Dynamic Type, dark mode, VoiceOver
+        └── modern-uikit-apis.md                # Observation, updateProperties(), .flushUpdates, UIScene
 ```
 
 ## How It Works
@@ -76,19 +80,79 @@ uikit-expert-skill/
 - **iOS 18+**: `UIObservationTrackingEnabled` (opt-in), automatic trait tracking
 - **iOS 26+**: `updateProperties()`, `.flushUpdates`, UIScene mandatory, Liquid Glass
 
-## Usage
+## How to Use This Skill
 
-### Claude Code / Claude Projects
+### Option A: Using skills.sh (recommended)
 
-Add the `uikit-expert-skill/` folder to your project or use it as a Claude Project knowledge source.
+Install this skill with a single command:
 
-### Cursor / Windsurf
+```bash
+npx skills add https://github.com/ivan-magda/uikit-expert-skill --skill uikit-expert
+```
 
-Place `SKILL.md` and the `references/` folder in your project root or `.cursor/rules/` directory.
+For more information, [visit the skills.sh platform page](https://skills.sh/ivan-magda/uikit-expert-skill/uikit-expert).
 
-### GitHub Copilot
+Then use the skill in your AI agent, for example:
 
-Reference via `.github/copilot-instructions.md` or include in workspace context.
+> Use the uikit expert skill and review the current UIKit code for lifecycle, memory management, and performance improvements
+
+### Option B: Claude Code Plugin
+
+#### Personal Usage
+
+To install this Skill for your personal use in Claude Code:
+
+Add the marketplace:
+
+```bash
+/plugin marketplace add ivan-magda/uikit-expert-skill
+```
+
+Install the Skill:
+
+```bash
+/plugin install uikit-expert@uikit-expert-skill
+```
+
+#### Project Configuration
+
+To automatically provide this Skill to everyone working in a repository, configure the repository's `.claude/settings.json`:
+
+```json
+{
+  "enabledPlugins": {
+    "uikit-expert@uikit-expert-skill": true
+  },
+  "extraKnownMarketplaces": {
+    "uikit-expert-skill": {
+      "source": {
+        "source": "github",
+        "repo": "ivan-magda/uikit-expert-skill"
+      }
+    }
+  }
+}
+```
+
+When team members open the project, Claude Code will prompt them to install the Skill.
+
+### Option C: Manual install
+
+1. **Clone** this repository.
+2. **Install or symlink** the skill folder following your tool's official skills installation docs (see links below).
+3. **Use your AI tool** as usual and ask it to use the "uikit-expert" skill for UIKit tasks.
+
+#### Where to Save Skills
+
+Follow your tool's official documentation, here are a few popular ones:
+
+- **Codex:** [Where to save skills](https://developers.openai.com/codex/skills/#where-to-save-skills)
+- **Claude:** [Using Skills](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview#using-skills)
+- **Cursor:** [Enabling Skills](https://cursor.com/docs/context/skills#enabling-skills)
+
+**How to verify**:
+
+Your agent should reference the workflow/checklists in `SKILL.md` and jump into the relevant reference file for your task.
 
 ## License
 
