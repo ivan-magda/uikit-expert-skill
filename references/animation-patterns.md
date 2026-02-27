@@ -478,34 +478,20 @@ UIView.animate(withDuration: 0.4, delay: 0,
 }, completion: nil)
 ```
 
-**Why the pre-flush?** Without the initial `layoutIfNeeded()`, any pending constraint changes from earlier code get swept into the animation block and animate unintentionally. You want a clean baseline.
-
-**Why `layoutIfNeeded` inside the block?** `UIView.animate` captures property changes made inside its closure. `layoutIfNeeded()` forces the Auto Layout engine to recalculate frames immediately. Those frame changes—being standard UIView animatable properties—are captured and interpolated by the animation context.
-
-Common mistakes with this pattern:
+A critical detail: `layoutIfNeeded()` must be called on the **superview** (or a common ancestor), not on the constrained view itself.
 
 ```swift
 // ❌ Incorrect: calling layoutIfNeeded on the child instead of the parent
 UIView.animate(withDuration: 0.3) {
     self.childView.layoutIfNeeded()   // Should be self.view.layoutIfNeeded()
 }
-
-// ❌ Incorrect: using setNeedsLayout instead of layoutIfNeeded
-UIView.animate(withDuration: 0.3) {
-    self.view.setNeedsLayout()   // Only marks for update — doesn't force it NOW
-}
-
-// ❌ Incorrect: putting layoutIfNeeded OUTSIDE the animation block
-heightConstraint.constant = 300
-self.view.layoutIfNeeded()   // Layout resolves immediately, nothing left to animate
-UIView.animate(withDuration: 0.3) {
-    // Nothing to animate here
-}
 ```
+
+For the full constraint animation guide including engine internals and the `.flushUpdates` modernization, see `references/auto-layout.md` § "Constraint animation and iOS 26's `.flushUpdates`".
 
 ### iOS 26: `.flushUpdates` eliminates the ceremony
 
-iOS 26 (announced at WWDC 2025) introduces **`.flushUpdates`**, a `UIView.AnimationOptions` value that automatically applies pending trait, property, and layout updates before entering and after exiting the animation context. This collapses the three-step pattern into a single, clean block:
+iOS 26 introduces **`.flushUpdates`**, a `UIView.AnimationOptions` value that automatically flushes pending trait, property, and layout updates — collapsing the three-step pattern into a single block:
 
 ```swift
 // ✅ iOS 26: no layoutIfNeeded needed anywhere
@@ -516,35 +502,7 @@ UIView.animate(withDuration: 0.3, options: .flushUpdates) {
 }
 ```
 
-The option also works with `UIViewPropertyAnimator` via a new `flushUpdates` property:
-
-```swift
-// ✅ iOS 26: flushUpdates on UIViewPropertyAnimator
-let animator = UIViewPropertyAnimator(duration: 1, curve: .easeInOut)
-animator.flushUpdates = true
-animator.addAnimations {
-    heightConstraint.constant = 300
-}
-animator.startAnimation()
-```
-
-Combined with iOS 26's **automatic `@Observable` tracking**, UIKit views that depend on observed model properties invalidate and re-layout automatically. This means you can animate model changes without even referencing views:
-
-```swift
-// ✅ iOS 26: animate Observable model changes
-UIView.animate(withDuration: 0.3, options: .flushUpdates) {
-    model.isExpanded = true
-    // UIKit automatically knows which views depend on this property
-}
-```
-
-| Step | Classic pattern (≤ iOS 18) | iOS 26 with `.flushUpdates` |
-|---|---|---|
-| Pre-flush | `view.layoutIfNeeded()` | Automatic |
-| Update constraints | Outside animation block | Inside animation closure |
-| Force layout | `view.layoutIfNeeded()` inside block | Automatic |
-
-The `@Observable` tracking can be back-deployed to iOS 18 via the `UIObservationTrackingEnabled` Info.plist key, but `.flushUpdates` itself requires iOS 26.
+For the complete `.flushUpdates` guide including `UIViewPropertyAnimator`, `@Observable` integration, and the classic-vs-modern comparison table, see `references/auto-layout.md` § "iOS 26 introduces `UIView.AnimationOptions.flushUpdates`".
 
 ---
 

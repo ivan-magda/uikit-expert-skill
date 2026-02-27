@@ -160,74 +160,25 @@ override func layoutSubviews() {
 
 ## 2. The .flushUpdates animation option replaces layoutIfNeeded
 
-Before iOS 26, animating constraint or observable-driven changes required manually calling `layoutIfNeeded()` inside the animation block. This was error-prone — you had to know which views depended on which properties. **`.flushUpdates` eliminates this entirely** by automatically applying all pending updates (traits, properties, and layout) before and after the animation closure.
-
-### Before and after comparison
+Before iOS 26, animating constraint or observable-driven changes required a manual three-step `layoutIfNeeded()` dance. **`.flushUpdates`** (iOS 26+) eliminates this by automatically flushing pending trait, property, and layout updates before and after the animation closure:
 
 ```swift
 // ❌ iOS 18 and earlier — manual approach
+view.layoutIfNeeded()
+heightConstraint.constant = 100
 UIView.animate(withDuration: 0.3) {
-    heightConstraint.constant = 100
-    self.view.layoutIfNeeded()  // Must manually reference view and flush
+    self.view.layoutIfNeeded()
 }
 
 // ✅ iOS 26 — automatic approach
 UIView.animate(withDuration: 0.3, options: .flushUpdates) {
     heightConstraint.constant = 100
-    // No layoutIfNeeded() needed!
 }
 ```
 
-This becomes especially powerful with observable-driven views:
+The critical rule: **only make invalidating state changes inside the animation closure** — just set the new values and let UIKit's automatic tracking handle the rest.
 
-```swift
-@Observable class ConfirmationModel {
-    var confirmationColor: UIColor = .gray
-}
-
-// The view's updateProperties() reads model.confirmationColor
-// ❌ Old way: must reference the specific view
-UIView.animate(withDuration: 0.3) {
-    myModel.confirmationColor = .green
-    confirmationView.layoutIfNeeded()  // Must know which view depends on this
-}
-
-// ✅ New way: just change the model
-UIView.animate(withDuration: 0.3, options: .flushUpdates) {
-    myModel.confirmationColor = .green
-    // Don't even need to reference confirmationView!
-    // UIKit knows it depends on confirmationColor and handles everything.
-}
-```
-
-### UIViewPropertyAnimator support
-
-```swift
-let animator = UIViewPropertyAnimator(duration: 1, curve: .easeInOut)
-animator.flushUpdates = true
-animator.addAnimations {
-    heightConstraint.constant = 100
-}
-animator.startAnimation()
-```
-
-### Real-world keyboard handling with typed notifications
-
-```swift
-let keyboardObserver = NotificationCenter.default.addObserver(
-    of: UIScreen.self,
-    for: .keyboardWillShow
-) { message in
-    UIView.animate(
-        withDuration: message.animationDuration,
-        options: .flushUpdates
-    ) {
-        bottomConstraint.constant = view.bounds.maxY - message.endFrame.minY
-    }
-}
-```
-
-The critical rule: **only make invalidating state changes inside the animation closure**. Don't mix reads or updates with state changes — just set the new values and let UIKit's automatic tracking handle the rest. The `.flushUpdates` option also implicitly applies to nested animation scopes, ensuring consistent behavior in complex animation hierarchies.
+For full constraint animation patterns and the `.flushUpdates` API (including `UIViewPropertyAnimator`, `@Observable` integration, and keyboard handling), see `references/auto-layout.md` § "Constraint animation and iOS 26's `.flushUpdates`" and `references/animation-patterns.md` § "Constraint animation and the iOS 26 revolution".
 
 ---
 

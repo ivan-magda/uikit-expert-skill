@@ -609,10 +609,10 @@ actor BankAccount {
 
 ### Deduplicating in-flight work with Task caching
 
-The most robust reentrancy pattern — used in Apple's own WWDC examples — stores in-progress `Task` references so concurrent callers share a single operation:
+The most robust reentrancy pattern — used in Apple's own WWDC examples — stores in-progress `Task` references so concurrent callers share a single operation. The key data structure is an enum that distinguishes pending from completed work:
 
 ```swift
-// ✅ CORRECT — reentrancy-safe image downloader
+// ✅ CacheEntry pattern — store Task before suspension point
 actor ImageDownloader {
     private enum CacheEntry {
         case inProgress(Task<UIImage, Error>)
@@ -623,26 +623,18 @@ actor ImageDownloader {
     func image(from url: URL) async throws -> UIImage {
         if let entry = cache[url] {
             switch entry {
-            case .ready(let image):
-                return image
-            case .inProgress(let task):
-                return try await task.value  // Reuse existing download
+            case .ready(let image): return image
+            case .inProgress(let task): return try await task.value
             }
         }
-
         let task = Task { try await downloadImage(from: url) }
-        cache[url] = .inProgress(task)       // Store before suspension
-        do {
-            let image = try await task.value
-            cache[url] = .ready(image)
-            return image
-        } catch {
-            cache[url] = nil                 // Clean up on failure
-            throw error
-        }
+        cache[url] = .inProgress(task)  // Store BEFORE suspension
+        // ... await, then promote to .ready or clean up on failure
     }
 }
 ```
+
+The critical detail: store `.inProgress(task)` **before** the first `await`. This ensures concurrent callers that arrive during the suspension find the existing task and reuse it instead of starting a duplicate. For a complete image loading actor with NSCache integration, downsampling, and cancellation support, see `references/image-loading.md` § "The complete ImageLoader actor".
 
 **The golden rule for actors**: if all your actor methods are synchronous (no `await`), reentrancy is not a concern and the actor behaves identically to a serial dispatch queue. **Reentrancy only arises when actor methods contain suspension points.** Treat every `await` inside an actor as a point where all assumptions about state must be re-verified.
 

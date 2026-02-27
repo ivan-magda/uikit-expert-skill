@@ -416,9 +416,7 @@ override func viewDidAppear(_ animated: Bool) {
 
 ## Deallocation verification catches retain cycles early
 
-If a view controller's `deinit` never fires after it leaves the screen, you have a memory leak. Three complementary techniques catch this at different levels.
-
-### Technique 1: deinit print logging
+If a view controller's `deinit` never fires after it leaves the screen, you have a memory leak. The simplest check:
 
 ```swift
 // ✅ Add to every view controller during development
@@ -427,26 +425,9 @@ deinit {
 }
 ```
 
-Pop or dismiss the controller. If nothing prints, you have a retain cycle.
+Pop or dismiss the controller. If nothing prints, you have a retain cycle. Use Xcode's **Memory Graph Debugger** (three-circles icon in the debug bar) to identify the specific object and property causing the cycle.
 
-### Technique 2: Delayed weak-self assert
-
-```swift
-// ✅ Automatic leak detection — add to a base class
-override func viewDidDisappear(_ animated: Bool) {
-    super.viewDidDisappear(animated)
-    guard isBeingDismissed || isMovingFromParent else { return }
-
-    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
-        // If self is still alive 2 seconds after permanent dismissal → leak
-        assert(self == nil, "⚠️ Potential leak: \(String(describing: self))")
-    }
-}
-```
-
-### Technique 3: Xcode Memory Graph Debugger
-
-Navigate to the suspect screen, dismiss it, then click the **Debug Memory Graph** button (three-circles icon) in Xcode's debug bar. Filter by your view controller class name. If the controller still appears, select it — the reference graph shows exactly which object is retaining it. Purple exclamation marks highlight potential issues. This is the definitive tool for identifying the **specific** object and property causing the cycle.
+For the complete deallocation verification toolkit (delayed assertions, symbolic breakpoints, unit test helpers, community libraries, and the full Memory Graph Debugger workflow), see `references/memory-management.md` § "Five patterns for verifying UIViewController deallocation".
 
 ### The most common leak patterns
 
