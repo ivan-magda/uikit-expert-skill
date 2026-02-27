@@ -84,7 +84,8 @@ Use this skill to build, review, or improve UIKit features with correct lifecycl
 - Use `applySnapshotUsingReloadData` for initial population (bypasses diffing)
 - Use `UICollectionViewCompositionalLayout` for any non-trivial layout
 - Use `UICollectionView.CellRegistration` — no string identifiers, no manual casting
-- Use `UIContentConfiguration` and `configurationUpdateHandler` for cell content
+- Use `UIContentConfiguration` for cell content and `UIBackgroundConfiguration` for cell backgrounds
+- Use `configurationUpdateHandler` for state-driven styling (selection, highlight)
 
 ### Navigation
 - Configure all 4 `UINavigationBarAppearance` slots (standard, scrollEdge, compact, compactScrollEdge)

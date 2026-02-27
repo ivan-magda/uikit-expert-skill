@@ -130,6 +130,7 @@ When reviewing or generating UIKit code, watch for these frequent AI mistakes:
 - No `prepareForReuse` cleanup for async image loading
 - Using `traitCollectionDidChange` instead of `registerForTraitChanges`
 - Using keyboard notifications instead of `UIKeyboardLayoutGuide`
+- Missing `deinit` debug logging for leak verification during development
 
 ## Updating the Skill
 
