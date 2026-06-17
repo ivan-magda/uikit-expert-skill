@@ -1,124 +1,90 @@
 # UIKit Expert Skill
 
-An AI Agent Skill for writing correct, performant, and modern UIKit code in Swift. Designed to work with Claude, Cursor, Windsurf, Copilot, and other AI coding assistants that support the Agent Skills / AGENTS.md format.
+An AI agent skill for writing correct, performant, modern UIKit code in Swift.
 
-<img src="demo.gif" alt="Install uikit-expert skill" width="600">
+<img src="demo.gif" alt="Installing the uikit-expert skill" width="600">
+
+## Table of Contents
+
+- [Background](#background)
+- [Philosophy](#philosophy)
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Project Structure](#project-structure)
+- [Contributing](#contributing)
+- [License](#license)
+
+## Background
+
+AI coding assistants tend to produce UIKit code with the same recurring mistakes: geometry work in `viewDidLoad` instead of `viewIsAppearing`, missing `[weak self]` in escaping closures, deprecated `cell.textLabel` instead of `UIContentConfiguration`, and navigation bar appearance set on the wrong object. This skill gives an agent the facts it needs to catch and fix those mistakes.
+
+It ships in the Agent Skills format, so it works with any assistant that reads `SKILL.md` or `AGENTS.md`, including Claude Code, Cursor, Windsurf, and Codex. The entry point, `SKILL.md`, routes the agent through a decision tree (review, improve, or implement) and points it at the matching reference file for the task at hand.
 
 ## Philosophy
 
-This skill focuses on **facts and best practices**, not architectural opinions:
+The skill teaches facts and best practices, not architecture. It draws a hard line:
 
-**Covered:**
+- It uses "always" or "never" only for correctness, like setting `translatesAutoresizingMaskIntoConstraints = false` on programmatic views.
+- It uses "consider" or "suggest" for optimizations, like image downsampling or list prefetching.
+- It enforces no architecture. No MVVM, VIPER, or Coordinator mandate.
+- It dictates no formatting. No property ordering, file structure, or naming rules.
+- It optimizes for correctness first, then performance, following Apple's documented APIs and Human Interface Guidelines.
 
-- Correctness — lifecycle ordering, retain cycle prevention, thread safety
-- Performance — constraint churn avoidance, scroll optimization, image downsampling
-- Modern APIs — diffable data sources, compositional layout, cell configuration, Observation
+## Features
 
-**Intentionally excluded:**
+Fourteen reference files cover the surface area an agent hits when working with UIKit:
 
-- No architecture mandates — no MVVM/VIPER/Coordinator enforcement
-- No formatting rules — no property ordering or file structure requirements
+| Domain | Key topics |
+| --- | --- |
+| Lifecycle | `viewIsAppearing` (iOS 13+), child VC containment, deallocation verification |
+| Auto Layout | Batch activation, zero-churn constraints, constraint animation, `.flushUpdates` (iOS 26) |
+| Collection views | Diffable data sources, stable identity, compositional layout, list configuration |
+| Cell configuration | `UIContentConfiguration`, `UIBackgroundConfiguration`, `configurationUpdateHandler` |
+| List performance | Prefetching with Swift concurrency, cell reuse race condition, `reconfigureItems` |
+| Navigation | Four-slot `UINavigationBarAppearance`, concurrent transition guards, Liquid Glass |
+| Animation | API selection, `UIViewPropertyAnimator` state machine, spring animations |
+| Memory | Retain cycle traps (Timer, NotificationCenter, CADisplayLink, nested closures), Task retention |
+| Concurrency | `@MainActor`, Task lifecycle, Swift 6 migration, `Task.detached` pitfalls |
+| Interop | `UIHostingController` containment, `sizingOptions`, `UIViewRepresentable` lifecycle |
+| Images | ImageIO downsampling, decoded bitmap math, cancel/clear/verify pattern |
+| Keyboard | `UIKeyboardLayoutGuide`, iPad floating keyboard, scroll view sync |
+| Adaptive | `registerForTraitChanges`, Dynamic Type, CGColor dark mode trap, VoiceOver |
+| Modern APIs | Observation framework, `updateProperties()`, `.flushUpdates`, mandatory UIScene |
 
-## Structure
+Each reference is self-contained, with correct and incorrect Swift examples, a "why" for every recommendation, and a checklist at the bottom.
 
-```
-uikit-expert-skill/
-├── .claude-plugin/
-│   ├── plugin.json                             # Claude Code plugin manifest
-│   └── marketplace.json                        # Claude Code marketplace catalog
-├── AGENTS.md                                   # Meta-rules for AI agents
-└── uikit-expert/
-    ├── SKILL.md                                # Decision tree router (entry point)
-    └── references/
-        ├── view-controller-lifecycle.md        # Lifecycle ordering, viewIsAppearing
-        ├── auto-layout.md                      # Batch activation, constraint churn, animation
-        ├── modern-collection-views.md          # Diffable, compositional, CellRegistration
-        ├── cell-configuration.md               # UIContentConfiguration, configurationUpdateHandler
-        ├── list-performance.md                 # Prefetching, cell reuse, scroll performance
-        ├── navigation-patterns.md              # Bar appearance, concurrent transitions, deep links
-        ├── animation-patterns.md               # UIView.animate, PropertyAnimator, CAAnimation
-        ├── memory-management.md                # Retain cycles, [weak self], delegate ownership
-        ├── concurrency-main-thread.md          # @MainActor, Task lifecycle, Swift 6
-        ├── uikit-swiftui-interop.md            # UIHostingController, UIViewRepresentable
-        ├── image-loading.md                    # Downsampling, decoded bitmap math, cell race condition
-        ├── keyboard-scroll.md                  # UIKeyboardLayoutGuide, scroll insets
-        ├── adaptive-appearance.md              # Traits, Dynamic Type, dark mode, VoiceOver
-        └── modern-uikit-apis.md                # Observation, updateProperties(), .flushUpdates, UIScene
-```
-
-## How It Works
-
-**SKILL.md** acts as a decision tree router. Based on user intent (review / improve / implement), it directs the AI agent to the relevant reference documents. Each reference document is self-contained with:
-
-- Concrete correct and incorrect Swift code examples
-- "Why" explanations for each recommendation
-- Summary checklists at the bottom
-
-## Coverage
-
-| Domain             | Key Topics                                                                                       |
-| ------------------ | ------------------------------------------------------------------------------------------------ |
-| Lifecycle          | `viewIsAppearing` (iOS 13+), child VC containment, deallocation verification                     |
-| Auto Layout        | Batch activation, zero-churn patterns, constraint animation, `.flushUpdates` (iOS 26)            |
-| Collection Views   | Diffable data sources, stable identity, compositional layout, list configuration                 |
-| Cell Configuration | `UIContentConfiguration`, `UIBackgroundConfiguration`, `configurationUpdateHandler`              |
-| List Performance   | Prefetching with Swift concurrency, cell reuse race condition, `reconfigureItems`                |
-| Navigation         | 4-slot `UINavigationBarAppearance`, concurrent transition guards, iOS 26 Liquid Glass            |
-| Animation          | API selection guide, `UIViewPropertyAnimator` state machine, spring animations                   |
-| Memory             | 4 retain cycle traps (Timer, NotificationCenter, CADisplayLink, nested closures), Task retention |
-| Concurrency        | `@MainActor`, Task lifecycle, Swift 6 migration, `Task.detached` pitfalls                        |
-| Interop            | `UIHostingController` containment, `sizingOptions`, `UIViewRepresentable` lifecycle              |
-| Images             | ImageIO downsampling, decoded bitmap math, cancel/clear/verify pattern                           |
-| Keyboard           | `UIKeyboardLayoutGuide`, iPad floating keyboard, scroll view sync                                |
-| Adaptive           | `registerForTraitChanges`, Dynamic Type, CGColor dark mode trap, VoiceOver                       |
-| Modern APIs        | Observation framework, `updateProperties()`, `.flushUpdates`, UIScene mandatory                  |
-
-## iOS Version Coverage
+The guidance spans iOS 13 through 26:
 
 - **iOS 13+**: `viewIsAppearing` (back-deployed), `UINavigationBarAppearance`
 - **iOS 14+**: `UIContentConfiguration`, `CellRegistration`, compositional layout list configuration
 - **iOS 15+**: `UIKeyboardLayoutGuide`, `reconfigureItems`, `scrollEdgeAppearance` changes
 - **iOS 17+**: `registerForTraitChanges`, custom traits, spring animation API
 - **iOS 18+**: `UIObservationTrackingEnabled` (opt-in), automatic trait tracking
-- **iOS 26+**: `updateProperties()`, `.flushUpdates`, UIScene mandatory, Liquid Glass
+- **iOS 26+**: `updateProperties()`, `.flushUpdates`, mandatory UIScene, Liquid Glass
 
-## How to Use This Skill
+## Installation
 
-### Option A: Using skills.sh (recommended)
+Pick the path that matches your assistant.
 
-Install this skill with a single command:
+### skills.sh (recommended)
 
 ```bash
 npx skills add https://github.com/ivan-magda/uikit-expert-skill --skill uikit-expert
 ```
 
-For more information, [visit the skills.sh platform page](https://skills.sh/ivan-magda/uikit-expert-skill/uikit-expert).
+See the [skills.sh platform page](https://skills.sh/ivan-magda/uikit-expert-skill/uikit-expert) for details.
 
-Then use the skill in your AI agent, for example:
+### Claude Code plugin
 
-> Use the uikit expert skill and review the current UIKit code for lifecycle, memory management, and performance improvements
-
-### Option B: Claude Code Plugin
-
-#### Personal Usage
-
-To install this Skill for your personal use in Claude Code:
-
-Add the marketplace:
+Add the marketplace, then install the skill:
 
 ```bash
 /plugin marketplace add ivan-magda/uikit-expert-skill
-```
-
-Install the Skill:
-
-```bash
 /plugin install uikit-expert@uikit-expert-skill
 ```
 
-#### Project Configuration
-
-To automatically provide this Skill to everyone working in a repository, configure the repository's `.claude/settings.json`:
+To enable the skill for everyone on a repository, add this to the project's `.claude/settings.json`:
 
 ```json
 {
@@ -136,26 +102,55 @@ To automatically provide this Skill to everyone working in a repository, configu
 }
 ```
 
-When team members open the project, Claude Code will prompt them to install the Skill.
+Claude Code prompts each team member to install the skill when they open the project.
 
-### Option C: Manual install
+### Manual install
 
-1. **Clone** this repository.
-2. **Install or symlink** the skill folder following your tool's official skills installation docs (see links below).
-3. **Use your AI tool** as usual and ask it to use the "uikit-expert" skill for UIKit tasks.
+1. Clone this repository.
+2. Install or symlink the `uikit-expert/` folder following your tool's official skills docs:
+   - [Codex: where to save skills](https://developers.openai.com/codex/skills/#where-to-save-skills)
+   - [Claude: using skills](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview#using-skills)
+   - [Cursor: enabling skills](https://cursor.com/docs/context/skills#enabling-skills)
 
-#### Where to Save Skills
+## Usage
 
-Follow your tool's official documentation, here are a few popular ones:
+Once the skill is installed, ask your agent to use it for any UIKit task. For example:
 
-- **Codex:** [Where to save skills](https://developers.openai.com/codex/skills/#where-to-save-skills)
-- **Claude:** [Using Skills](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview#using-skills)
-- **Cursor:** [Enabling Skills](https://cursor.com/docs/context/skills#enabling-skills)
+> Use the uikit-expert skill to review the current UIKit code for lifecycle, memory management, and performance issues.
 
-**How to verify**:
+The agent reads `SKILL.md`, picks the matching branch of the decision tree, and pulls in the relevant reference file. To confirm it loaded, check that the agent cites the workflow and checklists from `SKILL.md` and jumps into a specific reference file for your task.
 
-Your agent should reference the workflow/checklists in `SKILL.md` and jump into the relevant reference file for your task.
+## Project Structure
+
+```
+uikit-expert-skill/
+├── .claude-plugin/
+│   ├── plugin.json                  # Claude Code plugin manifest
+│   └── marketplace.json             # Claude Code marketplace catalog
+├── AGENTS.md                        # Meta-rules for AI agents authoring the skill
+└── uikit-expert/
+    ├── SKILL.md                     # Decision tree router (entry point)
+    └── references/
+        ├── view-controller-lifecycle.md
+        ├── auto-layout.md
+        ├── modern-collection-views.md
+        ├── cell-configuration.md
+        ├── list-performance.md
+        ├── navigation-patterns.md
+        ├── animation-patterns.md
+        ├── memory-management.md
+        ├── concurrency-main-thread.md
+        ├── uikit-swiftui-interop.md
+        ├── image-loading.md
+        ├── keyboard-scroll.md
+        ├── adaptive-appearance.md
+        └── modern-uikit-apis.md
+```
+
+## Contributing
+
+Issues and pull requests are welcome. When adding content, keep it UIKit-specific and factual: reserve "always" and "never" for correctness, and present optimizations as suggestions. The authoring rules live in [AGENTS.md](AGENTS.md).
 
 ## License
 
-MIT
+Released under the [MIT License](LICENSE).
