@@ -6,61 +6,27 @@ description: Write, review, or improve UIKit code following best practices for v
 # UIKit Expert Skill
 
 ## Overview
-Use this skill to build, review, or improve UIKit features with correct lifecycle management, performant Auto Layout, modern collection view APIs, and safe navigation patterns. Prioritize native APIs, Apple's documented best practices, and performance-conscious patterns. This skill focuses on facts and best practices without enforcing specific architectural patterns (no MVVM/VIPER/Coordinator mandates).
+Favor native APIs and Apple's documented guidance. Operating principles: facts over architecture (no MVVM/VIPER/Coordinator mandates, but do separate business logic for testability); correctness first, then performance; reserve "always"/"never" for correctness, use "suggest"/"consider" for optional optimizations.
 
-## Workflow Decision Tree
+## Workflows
 
-### 1) Review existing UIKit code
-- Check view controller lifecycle usage — `viewIsAppearing` for geometry, `viewDidLoad` for setup only (see `references/view-controller-lifecycle.md`)
-- Verify Auto Layout correctness — batch activation, no constraint churn, `translatesAutoresizingMaskIntoConstraints` (see `references/auto-layout.md`)
-- Check collection/table view APIs — diffable data sources, stable identity, CellRegistration (see `references/modern-collection-views.md`)
-- Verify cell configuration uses `UIContentConfiguration`, not deprecated `textLabel` (see `references/cell-configuration.md`)
-- Check list scroll performance — prefetching, cell reuse cleanup, reconfigureItems (see `references/list-performance.md`)
-- Verify navigation patterns — bar appearance all 4 slots, no concurrent transition crashes (see `references/navigation-patterns.md`)
-- Check animation correctness — API selection, PropertyAnimator state machine, constraint animation (see `references/animation-patterns.md`)
-- Audit memory management — `[weak self]`, delegate ownership, Timer/CADisplayLink traps (see `references/memory-management.md`)
-- Check concurrency safety — Task lifecycle, cancellation in viewDidDisappear (see `references/concurrency-main-thread.md`)
-- If SwiftUI interop present — verify UIHostingController containment, sizingOptions (see `references/uikit-swiftui-interop.md`)
-- Check image loading — downsampling, cell reuse race condition (cancel/clear/verify) (see `references/image-loading.md`)
-- Verify keyboard handling — UIKeyboardLayoutGuide over manual notifications (see `references/keyboard-scroll.md`)
-- Check trait handling and accessibility — registerForTraitChanges, Dynamic Type, VoiceOver (see `references/adaptive-appearance.md`)
-- Validate modern API adoption and iOS 26+ availability handling (see `references/modern-uikit-apis.md`)
+All three modes draw on the same **Core Guidelines** below; each topic links to its reference file there. Pick the entry point:
 
-### 2) Improve existing UIKit code
-- Replace geometry work in `viewDidLoad` with `viewIsAppearing` (see `references/view-controller-lifecycle.md`)
-- Eliminate constraint churn — create once, toggle `isActive` or modify `.constant` (see `references/auto-layout.md`)
-- Migrate from legacy `UITableViewDataSource` to diffable data sources (see `references/modern-collection-views.md`)
-- Replace deprecated `textLabel`/`detailTextLabel`/`imageView` with `UIContentConfiguration` (see `references/cell-configuration.md`)
-- Replace `reloadItems` with `reconfigureItems` for in-place cell updates (see `references/list-performance.md`)
-- Fix navigation bar appearance — set all 4 appearance slots, use `navigationItem` not `navigationBar` (see `references/navigation-patterns.md`)
-- Improve animations — use PropertyAnimator for gestures, correct constraint animation pattern (see `references/animation-patterns.md`)
-- Fix retain cycles — add `[weak self]`, cancel Tasks in `viewDidDisappear`, use block-based Timer (see `references/memory-management.md`)
-- Migrate GCD to Swift concurrency — replace `DispatchQueue.main.async` with `Task` (see `references/concurrency-main-thread.md`)
-- Suggest image downsampling when `UIImage(data:)` or full-resolution loading detected (as optional optimization, see `references/image-loading.md`)
-- Replace keyboard notification handling with `UIKeyboardLayoutGuide` (see `references/keyboard-scroll.md`)
-- Replace `traitCollectionDidChange` with `registerForTraitChanges` (see `references/adaptive-appearance.md`)
-- Adopt iOS 26 APIs where appropriate — Observation, updateProperties(), .flushUpdates (see `references/modern-uikit-apis.md`)
-
-### 3) Implement new UIKit feature
-- Design data flow first: identify owned state, injected dependencies, and model layer
-- Set up view controller lifecycle correctly — one-time setup in `viewDidLoad`, geometry in `viewIsAppearing` (see `references/view-controller-lifecycle.md`)
-- Build Auto Layout with batch activation and zero churn (see `references/auto-layout.md`)
-- Use modern collection view stack: DiffableDataSource + CompositionalLayout + CellRegistration (see `references/modern-collection-views.md`)
-- Configure cells with `UIContentConfiguration` and `configurationUpdateHandler` (see `references/cell-configuration.md`)
-- Implement prefetching and proper cell reuse cleanup for lists (see `references/list-performance.md`)
-- Set up navigation with all 4 appearance slots and concurrent-transition guards (see `references/navigation-patterns.md`)
-- Choose correct animation API for the use case (see `references/animation-patterns.md`)
-- Use `[weak self]` in escaping closures, cancel Tasks in lifecycle methods (see `references/memory-management.md`)
-- Use `@MainActor` correctly, store Task references (see `references/concurrency-main-thread.md`)
-- If embedding SwiftUI — use full child VC containment for UIHostingController (see `references/uikit-swiftui-interop.md`)
-- Downsample images for display, handle cell reuse race condition (see `references/image-loading.md`)
-- Use `UIKeyboardLayoutGuide` for keyboard handling (see `references/keyboard-scroll.md`)
-- Support Dynamic Type, VoiceOver, dark mode from the start (see `references/adaptive-appearance.md`)
-- Gate iOS 26+ features with `#available` and provide sensible fallbacks (see `references/modern-uikit-apis.md`)
+- **Review** — Walk the **Review Checklist** as pass/fail gates. For any failure, fix per the matching Core Guideline. Prioritize correctness gates (lifecycle, Auto Layout, memory, concurrency) over style; treat performance items as optional.
+- **Improve** — For each issue, apply the modern replacement from the **Deprecated → Modern** table and the matching Core Guideline. Present performance work (downsampling, prefetching, constraint-churn fixes) as optional optimizations, never mandates.
+- **Implement new** — Build in this order, applying the relevant Core Guideline at each step:
+  1. Design data flow — owned state, injected dependencies, model layer
+  2. Lifecycle — one-time setup in `viewDidLoad`, geometry in `viewIsAppearing`
+  3. Auto Layout — batch activation, zero churn
+  4. Collection views — DiffableDataSource + CompositionalLayout + CellRegistration
+  5. Navigation — all 4 appearance slots, concurrent-transition guards
+  6. Animation, memory (`[weak self]`, Task cancellation), concurrency (`@MainActor`)
+  7. Interop, image loading, keyboard, Dynamic Type / VoiceOver / dark mode
+  8. Gate iOS 26+ features with `#available` and sensible fallbacks
 
 ## Core Guidelines
 
-### View Controller Lifecycle
+### View Controller Lifecycle — see `references/view-controller-lifecycle.md`
 - Use `viewDidLoad` for one-time setup: subviews, constraints, delegates — NOT geometry
 - Use `viewIsAppearing` (back-deployed iOS 13+) for geometry-dependent work, trait-based layout, scroll-to-item
 - `viewDidLayoutSubviews` fires multiple times — use only for lightweight layer frame adjustments
@@ -69,7 +35,7 @@ Use this skill to build, review, or improve UIKit features with correct lifecycl
 - Child VC containment: `addChild` → `addSubview` → `didMove(toParent:)` — in that exact order
 - Verify deallocation with `deinit` logging during development
 
-### Auto Layout
+### Auto Layout — see `references/auto-layout.md`
 - Always set `translatesAutoresizingMaskIntoConstraints = false` on programmatic views
 - Use `NSLayoutConstraint.activate([])` — never individual `.isActive = true`
 - Create constraints once, toggle `isActive` or modify `.constant` — never remove and recreate
@@ -77,8 +43,19 @@ Use this skill to build, review, or improve UIKit features with correct lifecycl
 - Animate constraints: update constant → call `layoutIfNeeded()` inside animation block on superview
 - iOS 26+: use `.flushUpdates` option to simplify constraint animation
 - Avoid deeply nested UIStackViews in reusable cells
+- Set `constraint.identifier` on key constraints so `Unable to simultaneously satisfy constraints` logs are readable
 
-### Collection Views & Data Sources
+```swift
+let label = UILabel()
+label.translatesAutoresizingMaskIntoConstraints = false   // required on programmatic views
+view.addSubview(label)
+NSLayoutConstraint.activate([                              // one batch = one solve pass
+    label.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+    label.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+])
+```
+
+### Collection Views & Data Sources — see `references/modern-collection-views.md`, `references/cell-configuration.md`, `references/list-performance.md`
 - Use `UICollectionViewDiffableDataSource` with stable identifiers (UUID/database ID, not full model structs)
 - Use `reconfigureItems` for content updates, `reloadItems` only when cell type changes
 - Use `applySnapshotUsingReloadData` for initial population (bypasses diffing)
@@ -87,21 +64,39 @@ Use this skill to build, review, or improve UIKit features with correct lifecycl
 - Use `UIContentConfiguration` for cell content and `UIBackgroundConfiguration` for cell backgrounds
 - Use `configurationUpdateHandler` for state-driven styling (selection, highlight)
 
-### Navigation
+```swift
+// Store the registration once — never create it inside the cell provider (crashes on iOS 15+).
+private lazy var cellRegistration = UICollectionView.CellRegistration<PhotoCell, Photo> { cell, _, photo in
+    cell.configure(with: photo)
+}
+
+// Data source is keyed by the stable ID, so the provider receives an id — look up the model, then configure with it.
+dataSource = .init(collectionView: collectionView) { [weak self] cv, indexPath, id in
+    guard let self, let photo = self.photo(for: id) else { return nil }
+    return cv.dequeueConfiguredReusableCell(using: self.cellRegistration, for: indexPath, item: photo)
+}
+
+var snapshot = NSDiffableDataSourceSnapshot<Section, Photo.ID>()
+snapshot.appendSections([.main])
+snapshot.appendItems(photos.map(\.id))
+dataSource.apply(snapshot, animatingDifferences: true)
+```
+
+### Navigation — see `references/navigation-patterns.md`
 - Configure all 4 `UINavigationBarAppearance` slots (standard, scrollEdge, compact, compactScrollEdge)
 - Set appearance on `navigationItem` (per-VC) in `viewDidLoad`, not on `navigationBar` in `viewWillAppear`
 - Use `setViewControllers(_:animated:)` for deep links — not sequential push calls
 - Guard against concurrent transitions — check `transitionCoordinator` before push/pop
 - Set `prefersLargeTitles` once on the bar; use `largeTitleDisplayMode` per VC
 
-### Animation
+### Animation — see `references/animation-patterns.md`
 - `UIView.animate` — simple one-shot animations; check `finished` in completion
 - `UIViewPropertyAnimator` — gesture-driven, interruptible; respect state machine (inactive → active → stopped)
 - `CABasicAnimation` — layer-only properties (cornerRadius, shadow, 3D transforms); set model value first
 - iOS 17+ spring API: `UIView.animate(springDuration:bounce:)` aligns with SwiftUI
 - Constraint animation: flush layout → update constant → animate `layoutIfNeeded()` on superview
 
-### Memory Management
+### Memory Management — see `references/memory-management.md`
 - Default to `[weak self]` in all escaping closures
 - Timer: use block-based API with `[weak self]`, invalidate in `viewWillDisappear`
 - CADisplayLink: use weak proxy pattern (no block-based API available)
@@ -110,58 +105,38 @@ Use this skill to build, review, or improve UIKit features with correct lifecycl
 - Delegates: always `weak var delegate: SomeDelegate?` with `AnyObject` constraint
 - Verify deallocation with `deinit` — if never called, a retain cycle exists
 
-### Concurrency
+### Concurrency — see `references/concurrency-main-thread.md`
 - `UIViewController` is `@MainActor` — all subclass methods are implicitly main-actor
 - Store `Task` references, cancel in `viewDidDisappear` — not `deinit`
 - Check `Task.isCancelled` before UI updates after `await`
 - `Task.detached` does NOT inherit actor isolation — explicit `MainActor.run` needed for UI
 - Never call `DispatchQueue.main.sync` from background — use `await MainActor.run`
 
-### UIKit–SwiftUI Interop
+### UIKit–SwiftUI Interop — see `references/uikit-swiftui-interop.md`
 - UIHostingController: full child VC containment (`addChild` → `addSubview` → `didMove`), retain as stored property
 - `sizingOptions = .intrinsicContentSize` (iOS 16+) for Auto Layout containers
 - UIViewRepresentable: set mutable state in `updateUIView`, not `makeUIView`; guard against update loops
 - UIHostingConfiguration (iOS 16+) for SwiftUI content in collection view cells
 
-### Image Loading
+### Image Loading — see `references/image-loading.md`
 - Decoded bitmap size = width × height × 4 bytes (a 12MP photo = ~48MB RAM)
 - Downsample with ImageIO at display size — never load full bitmap and resize
 - iOS 15+: use `byPreparingThumbnail(of:)` or `prepareForDisplay()` for async decoding
 - Cell reuse: cancel Task in `prepareForReuse`, clear image, verify identity on completion
 
-### Keyboard & Scroll
+### Keyboard & Scroll — see `references/keyboard-scroll.md`
 - Use `UIKeyboardLayoutGuide` (iOS 15+) — pin content bottom to `view.keyboardLayoutGuide.topAnchor`
 - iPad: set `followsUndockedKeyboard = true` for floating keyboards
 - Replace all manual keyboard notification handling with the layout guide
 
-### Adaptive Layout & Accessibility
+### Adaptive Layout & Accessibility — see `references/adaptive-appearance.md`
 - Use `registerForTraitChanges` (iOS 17+) instead of deprecated `traitCollectionDidChange`
 - Dynamic Type: `UIFont.preferredFont(forTextStyle:)` + `adjustsFontForContentSizeCategory = true`
 - Dark mode: use semantic colors (`.label`, `.systemBackground`); re-resolve CGColor on trait changes
 - VoiceOver: set `accessibilityLabel`, `accessibilityTraits`, `accessibilityHint` on custom views
 - Use `UIAccessibilityCustomAction` for complex list item actions
 
-## Quick Reference
-
-### View Controller Lifecycle Method Selection
-| Method | Use For |
-|--------|---------|
-| `viewDidLoad` | One-time setup: subviews, constraints, delegates |
-| `viewIsAppearing` | Geometry-dependent work, trait-based layout, scroll-to-item |
-| `viewWillAppear` | Transition coordinator animations only |
-| `viewDidLayoutSubviews` | Lightweight layer frame adjustments (fires multiple times) |
-| `viewDidAppear` | Start animations, analytics, post-appearance work |
-| `viewWillDisappear` | Cancel tasks, invalidate timers, save state |
-| `viewDidDisappear` | Final cleanup, cancel background work |
-
-### Animation API Selection
-| API | Best For | Interactive | Off Main Thread |
-|-----|----------|-------------|-----------------|
-| `UIView.animate` | Simple one-shot changes | No | No |
-| `UIViewPropertyAnimator` | Gesture-driven, interruptible | Yes | No |
-| `CABasicAnimation` | Layer properties, 3D transforms | Limited | Yes (Render Server) |
-
-### Deprecated → Modern API Replacements
+## Quick Reference — Deprecated → Modern APIs
 | Deprecated / Legacy | Modern Replacement | Since |
 |---------------------|-------------------|-------|
 | `traitCollectionDidChange` | `registerForTraitChanges(_:handler:)` | iOS 17 |
@@ -177,81 +152,20 @@ Use this skill to build, review, or improve UIKit features with correct lifecycl
 
 ## Review Checklist
 
-### View Controller Lifecycle
-- [ ] `viewDidLoad` contains NO geometry-dependent work
-- [ ] Geometry/trait work is in `viewIsAppearing`, not `viewWillAppear`
-- [ ] Every lifecycle override calls `super`
-- [ ] Child VC uses correct containment sequence
-- [ ] `deinit` is implemented for leak verification during development
+One gate per domain — the correctness items to verify (details in the matching Core Guideline above):
 
-### Auto Layout
-- [ ] `translatesAutoresizingMaskIntoConstraints = false` on all programmatic views
-- [ ] Constraints activated via `NSLayoutConstraint.activate([])`
-- [ ] No constraint removal/recreation — using `isActive` toggle or `.constant` modification
-- [ ] No priority changes from/to `.required` (1000) at runtime
-- [ ] No `setNeedsLayout()` inside `layoutSubviews` or `viewDidLayoutSubviews` (infinite loop)
-- [ ] Constraint identifiers set for debugging
-
-### Collection Views
-- [ ] Using diffable data source with stable identifiers (not full model structs)
-- [ ] `reconfigureItems` for content updates, not `reloadItems`
-- [ ] `CellRegistration` instead of string-based register/dequeue
-- [ ] `UIContentConfiguration` instead of deprecated cell properties
-- [ ] No duplicate identifiers in snapshot (`BUG_IN_CLIENT` crash)
-- [ ] Self-sizing cells have unambiguous top-to-bottom constraint chain
-
-### Navigation
-- [ ] All 4 `UINavigationBarAppearance` slots configured
-- [ ] Appearance set on `navigationItem` in `viewDidLoad`, not `navigationBar` in `viewWillAppear`
-- [ ] Concurrent transition guard in place
-- [ ] `prefersLargeTitles` set once; `largeTitleDisplayMode` per VC
-
-### Animation
-- [ ] Correct API chosen for use case (animate vs PropertyAnimator vs CA)
-- [ ] `UIViewPropertyAnimator` state machine respected
-- [ ] Constraint animation uses correct pattern (flush → update → animate)
-- [ ] `CAAnimation` sets model value before adding animation
-- [ ] Completion handlers check `finished` parameter
-
-### Memory Management
-- [ ] `[weak self]` in all escaping closures
-- [ ] Timers use block-based API with `[weak self]`; invalidated in `viewWillDisappear`
-- [ ] Task references stored and cancelled in `viewDidDisappear`
-- [ ] CADisplayLink uses weak proxy pattern
-- [ ] Delegates declared as `weak var` on `AnyObject`-constrained protocol
-- [ ] No strong self re-capture in nested stored closures
-
-### Concurrency
-- [ ] `Task.isCancelled` checked after `await` before UI updates
-- [ ] No `Task.detached` for UI work without explicit `MainActor.run`
-- [ ] No redundant `@MainActor` on `UIViewController` subclasses (already inherited)
-- [ ] No `DispatchQueue.main.sync` from background
-
-### Image Loading
-- [ ] Images downsampled to display size (not loaded at full resolution)
-- [ ] Cell image loading: cancel in `prepareForReuse`, clear image, verify identity
-- [ ] `NSCache` sized by decoded bitmap bytes, not file size
-
-### UIKit–SwiftUI Interop
-- [ ] `UIHostingController` retained as stored property (not local variable)
-- [ ] `UIHostingController` uses full child VC containment (`addChild` → `addSubview` → `didMove`)
-- [ ] `updateUIView` guards against infinite update loops with equality checks
-
-### Keyboard
-- [ ] Using `UIKeyboardLayoutGuide` (iOS 15+) instead of keyboard notifications
-- [ ] iPad: `followsUndockedKeyboard = true` on the layout guide
-
-### Adaptive & Accessibility
-- [ ] `registerForTraitChanges` (iOS 17+) instead of `traitCollectionDidChange`
-- [ ] Dynamic Type: `preferredFont` + `adjustsFontForContentSizeCategory = true`
-- [ ] CGColor properties re-resolved on trait changes (layer.borderColor, shadowColor)
-- [ ] Custom views have `accessibilityLabel` and `accessibilityTraits`
-- [ ] `UIAccessibilityCustomAction` for complex list item actions
-
-### Modern APIs (iOS 26+)
-- [ ] `#available` guards with sensible fallbacks for iOS 26+ features
-- [ ] `UIScene` lifecycle adopted (mandatory for iOS 26 SDK)
-- [ ] `UIObservationTrackingEnabled` considered for iOS 18+ targets
+- [ ] **Lifecycle** — no geometry in `viewDidLoad` (use `viewIsAppearing`); every override calls `super`; child VC = `addChild → addSubview → didMove`; `deinit` confirms dealloc
+- [ ] **Auto Layout** — `translatesAutoresizingMaskIntoConstraints = false`; `NSLayoutConstraint.activate([])`; no churn (toggle `isActive`/`.constant`); no `setNeedsLayout()` inside `layoutSubviews` (infinite loop)
+- [ ] **Collection views** — diffable + stable identifiers; `reconfigureItems` not `reloadItems`; no duplicate snapshot IDs (`BUG_IN_CLIENT` crash); `CellRegistration` not string dequeue
+- [ ] **Navigation** — all 4 appearance slots; on `navigationItem` not `navigationBar`; concurrent-transition guard
+- [ ] **Animation** — API fits use case; constraint animation flush → update → animate; `CAAnimation` sets model value first
+- [ ] **Memory** — `[weak self]` in escaping closures; `Task`s cancelled in `viewDidDisappear`; delegates `weak`; no strong-self recapture in nested closures
+- [ ] **Concurrency** — `Task.isCancelled` checked after `await`; no `DispatchQueue.main.sync` from background; no redundant `@MainActor` on VC subclasses
+- [ ] **Images** — downsampled to display size; cell load cancels in `prepareForReuse` + verifies identity; `NSCache` sized by decoded bytes
+- [ ] **Interop** — `UIHostingController` retained + full containment; `updateUIView` guards update loops
+- [ ] **Keyboard** — `UIKeyboardLayoutGuide`, not notifications
+- [ ] **Adaptive/A11y** — `registerForTraitChanges`; Dynamic Type; CGColor re-resolved on trait change; `accessibilityLabel`/`Traits` on custom views
+- [ ] **iOS 26+** — `#available` guards with fallbacks; `UIScene` lifecycle; consider `UIObservationTrackingEnabled`
 
 ## References
 - `references/view-controller-lifecycle.md` — Lifecycle ordering, viewIsAppearing, child VC containment
@@ -268,13 +182,3 @@ Use this skill to build, review, or improve UIKit features with correct lifecycl
 - `references/keyboard-scroll.md` — UIKeyboardLayoutGuide, scroll view insets, iPad floating keyboard
 - `references/adaptive-appearance.md` — Trait changes, Dynamic Type, dark mode, VoiceOver, accessibility
 - `references/modern-uikit-apis.md` — Observation framework, updateProperties(), .flushUpdates, UIScene, Liquid Glass
-
-## Philosophy
-
-This skill focuses on **facts and best practices**, not architectural opinions:
-- We don't enforce specific architectures (e.g., MVVM, VIPER, Coordinator)
-- We do encourage separating business logic for testability
-- We optimize for correctness first, then performance
-- We follow Apple's documented APIs and Human Interface Guidelines
-- We use "suggest" or "consider" for optional optimizations
-- We use "always" or "never" only for correctness issues
