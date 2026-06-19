@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "uikit-expert-skill",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "owner": {
     "name": "Ivan Magda"
   },
@@ -13,7 +13,7 @@
       "name": "uikit-expert",
       "description": "Expert UIKit guidance for lifecycle, Auto Layout, collection views, memory management, concurrency, and modern API adoption.",
       "repository": "https://github.com/ivan-magda/uikit-expert-skill",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "author": {
         "name": "Ivan Magda"
       },
