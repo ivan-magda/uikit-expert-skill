@@ -1,0 +1,61 @@
+{
+  "context": "Tests whether the agent implements a UICollectionView photo grid using modern UIKit APIs: DiffableDataSource with stable identifiers, type-safe CellRegistration stored as a lazy property, async image loading with proper cell reuse hygiene, ImageIO downsampling, NSCache with bitmap-cost accounting, and the correct snapshot APIs for initial load vs. content updates.",
+  "type": "weighted_checklist",
+  "checklist": [
+    {
+      "name": "Stable identifiers",
+      "description": "UICollectionViewDiffableDataSource uses a stable identifier type (UUID, Int ID, or similar) as the item identifier — NOT a full model struct",
+      "max_score": 10
+    },
+    {
+      "name": "CellRegistration usage",
+      "description": "Uses UICollectionView.CellRegistration — no string-based dequeueReusableCell identifiers and no manual type casting of dequeued cells",
+      "max_score": 10
+    },
+    {
+      "name": "Lazy registration property",
+      "description": "CellRegistration is stored as a lazy var (or let) property on the view controller or data source — NOT created inline inside the cell provider closure",
+      "max_score": 10
+    },
+    {
+      "name": "Initial load method",
+      "description": "Uses applySnapshotUsingReloadData for the initial population of the collection view — not apply(_:animatingDifferences:)",
+      "max_score": 10
+    },
+    {
+      "name": "Content update method",
+      "description": "Uses reconfigureItems (not reloadItems) when updating the content of existing cells without changing cell type",
+      "max_score": 8
+    },
+    {
+      "name": "ImageIO downsampling",
+      "description": "Downsamples images using ImageIO (CGImageSourceCreateThumbnailAtIndex or similar) at display size — does NOT use UIImage(data:) followed by UIGraphicsImageRenderer or UIImage resizing",
+      "max_score": 10
+    },
+    {
+      "name": "NSCache bitmap cost",
+      "description": "NSCache cost per entry is calculated from the decoded bitmap dimensions (cgImage.bytesPerRow * cgImage.height or equivalent) — NOT from compressed file size (pngData().count or jpegData().count)",
+      "max_score": 10
+    },
+    {
+      "name": "Cancel in prepareForReuse",
+      "description": "Cell's prepareForReuse cancels the in-flight image load Task and clears the displayed image",
+      "max_score": 10
+    },
+    {
+      "name": "Identity check on completion",
+      "description": "After awaiting the image download, verifies the cell still corresponds to the same URL/ID before applying the image to the imageView (guards against stale cells showing wrong images)",
+      "max_score": 10
+    },
+    {
+      "name": "isCancelled check",
+      "description": "Checks Task.isCancelled (or uses try Task.checkCancellation()) before performing UI updates after any await point inside the image loading task",
+      "max_score": 7
+    },
+    {
+      "name": "Async thumbnail decode",
+      "description": "Uses byPreparingThumbnail(of:) or prepareForDisplay() for async off-thread image decoding before assigning to UIImageView (on iOS 15+)",
+      "max_score": 5
+    }
+  ]
+}

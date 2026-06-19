@@ -1,0 +1,66 @@
+{
+  "context": "Tests whether the agent correctly applies UIKit memory management patterns when implementing a view controller that uses a Timer, CADisplayLink, NotificationCenter, a delegate, and an async Task. Grading is based on the Swift source files and the memory_analysis.md produced by the agent.",
+  "type": "weighted_checklist",
+  "checklist": [
+    {
+      "name": "[weak self] in Timer closure",
+      "description": "Timer is created using the block-based API (scheduledTimer(withTimeInterval:repeats:block:)) and the closure captures self with [weak self]",
+      "max_score": 10
+    },
+    {
+      "name": "Timer invalidated in viewWillDisappear",
+      "description": "timer?.invalidate() (or equivalent) is called inside an override of viewWillDisappear(_:), NOT in deinit or viewDidDisappear",
+      "max_score": 10
+    },
+    {
+      "name": "CADisplayLink weak proxy",
+      "description": "CADisplayLink is connected to self via a WeakProxy (or equivalent weak-reference wrapper class) rather than directly referencing self as the target",
+      "max_score": 10
+    },
+    {
+      "name": "NotificationCenter [weak self]",
+      "description": "The NotificationCenter block-based observer (addObserver(forName:object:queue:using:)) captures self with [weak self] inside the handler closure",
+      "max_score": 8
+    },
+    {
+      "name": "Observer removed in deinit",
+      "description": "The NotificationCenter observer token is passed to NotificationCenter.default.removeObserver(_:) inside deinit, NOT in viewWillDisappear or viewDidDisappear",
+      "max_score": 8
+    },
+    {
+      "name": "Delegate declared weak",
+      "description": "The delegate property is declared as 'weak var delegate: <ProtocolName>?' (not strong)",
+      "max_score": 8
+    },
+    {
+      "name": "Delegate protocol AnyObject",
+      "description": "The delegate protocol declaration includes ': AnyObject' as a constraint (or equivalent class constraint)",
+      "max_score": 8
+    },
+    {
+      "name": "Task stored as property",
+      "description": "The async Task for the network fetch is stored in a stored property (e.g. 'private var fetchTask: Task<Void, Never>?') rather than being fire-and-forget",
+      "max_score": 8
+    },
+    {
+      "name": "Task cancelled in viewDidDisappear",
+      "description": "The stored Task is cancelled by calling .cancel() inside an override of viewDidDisappear(_:), NOT in deinit",
+      "max_score": 8
+    },
+    {
+      "name": "Task.isCancelled checked after await",
+      "description": "After each await expression inside the Task, there is a guard or check for Task.isCancelled (or Task.checkCancellation()) before any UI update",
+      "max_score": 8
+    },
+    {
+      "name": "No Task.detached for UI work",
+      "description": "Does NOT use Task.detached for code that updates the UI — uses Task {} (which inherits actor isolation) or explicit await MainActor.run {} instead",
+      "max_score": 8
+    },
+    {
+      "name": "deinit logs deallocation",
+      "description": "The view controller has a deinit implementation that calls print() or equivalent to log that the instance was deallocated (e.g. print(\"\\(type(of: self)) deallocated\") or similar)",
+      "max_score": 6
+    }
+  ]
+}

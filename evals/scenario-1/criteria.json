@@ -1,0 +1,71 @@
+{
+  "context": "Tests whether the agent follows UIKit Auto Layout and animation best practices when implementing an expandable card UI. The scenario covers constraint setup, batch activation, constraint reuse, animation patterns, lifecycle usage, and constraint identifiers.",
+  "type": "weighted_checklist",
+  "checklist": [
+    {
+      "name": "translatesAutoresizingMask disabled",
+      "description": "All programmatically created UIViews have translatesAutoresizingMaskIntoConstraints set to false before constraints are added",
+      "max_score": 10
+    },
+    {
+      "name": "Batch constraint activation",
+      "description": "Uses NSLayoutConstraint.activate([...]) to activate multiple constraints together — does NOT use individual .isActive = true calls for setting up constraints",
+      "max_score": 10
+    },
+    {
+      "name": "Constraints created once",
+      "description": "Height or visibility constraints for cards are created once (in init or viewDidLoad) and stored as properties — does NOT remove and recreate constraints on each tap",
+      "max_score": 10
+    },
+    {
+      "name": "Toggle via isActive or constant",
+      "description": "Expand/collapse is implemented by toggling constraint.isActive or modifying constraint.constant — not by creating new constraints on each state change",
+      "max_score": 10
+    },
+    {
+      "name": "Constraint animation: flush first",
+      "description": "Before animating constraint changes, calls layoutIfNeeded() on the superview to flush pending layout changes prior to starting the animation",
+      "max_score": 8
+    },
+    {
+      "name": "Constraint animation: animate inside block",
+      "description": "Calls layoutIfNeeded() inside the UIView.animate animation block (on superview) to drive the animated layout transition",
+      "max_score": 8
+    },
+    {
+      "name": "No required priority changes at runtime",
+      "description": "Any constraints whose priority is changed at runtime are initialized with a priority of 999 (or lower) — never created at .required (1000) and then changed",
+      "max_score": 8
+    },
+    {
+      "name": "Constraint identifiers on key constraints",
+      "description": "At least one key constraint (e.g. height or expanded constraint) has a constraint.identifier string set on it",
+      "max_score": 7
+    },
+    {
+      "name": "viewDidLoad for one-time setup",
+      "description": "Subview creation and constraint setup occurs in viewDidLoad — geometry-dependent work is NOT performed in viewDidLoad",
+      "max_score": 7
+    },
+    {
+      "name": "viewDidLayoutSubviews correct usage",
+      "description": "If viewDidLayoutSubviews is overridden, it is only used for bounds-dependent layer adjustments (e.g. cornerRadius) — NOT for one-time subview or constraint setup",
+      "max_score": 7
+    },
+    {
+      "name": "super called in lifecycle overrides",
+      "description": "Every overridden UIViewController lifecycle method (viewDidLoad, viewWillAppear, viewDidLayoutSubviews, etc.) calls super",
+      "max_score": 7
+    },
+    {
+      "name": "UIStackView nesting depth",
+      "description": "UIStackView nesting is at most 1–2 levels deep in any reusable cell or card view — does NOT have deeply nested stacks (3+ levels)",
+      "max_score": 4
+    },
+    {
+      "name": "iOS 26+ flushUpdates availability gating",
+      "description": "If the .flushUpdates animation option is used, it is wrapped in #available(iOS 26, *) with a fallback for older OS versions",
+      "max_score": 4
+    }
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "context": "Tests whether the agent implements a UIKit settings screen following modern iOS best practices: trait-change handling with registerForTraitChanges, Dynamic Type support, semantic dark-mode colors, VoiceOver accessibility, modern cell configuration APIs, compositional list layout, keyboard avoidance via UIKeyboardLayoutGuide, availability gating, and correct lifecycle method choice.",
+  "type": "weighted_checklist",
+  "checklist": [
+    {
+      "name": "registerForTraitChanges used",
+      "description": "Uses registerForTraitChanges(_:handler:) to respond to trait changes — does NOT override traitCollectionDidChange(_:)",
+      "max_score": 9
+    },
+    {
+      "name": "CGColor re-resolved on trait change",
+      "description": "Any CALayer color property (borderColor, shadowColor, etc.) is re-assigned inside a registerForTraitChanges handler or equivalent callback — NOT set once at setup time",
+      "max_score": 8
+    },
+    {
+      "name": "Semantic colors used",
+      "description": "Cell and view backgrounds/foregrounds use semantic UIColor values such as .label, .systemBackground, .secondarySystemGroupedBackground, or similar — NOT hardcoded UIColor(red:green:blue:) values",
+      "max_score": 8
+    },
+    {
+      "name": "Dynamic Type fonts",
+      "description": "Text labels use UIFont.preferredFont(forTextStyle:) rather than UIFont(name:size:) or UIFont.systemFont(ofSize:)",
+      "max_score": 8
+    },
+    {
+      "name": "adjustsFontForContentSizeCategory set",
+      "description": "All labels (or cells) that display text have adjustsFontForContentSizeCategory = true",
+      "max_score": 7
+    },
+    {
+      "name": "UICollectionViewCompositionalLayout used",
+      "description": "The collection view layout is created with UICollectionViewCompositionalLayout (e.g. .list(using:) or a custom compositional layout) — NOT UICollectionViewFlowLayout",
+      "max_score": 8
+    },
+    {
+      "name": "UIListContentConfiguration used",
+      "description": "Cell content is configured via cell.defaultContentConfiguration() / UIListContentConfiguration — does NOT access cell.textLabel, cell.detailTextLabel, or cell.imageView",
+      "max_score": 8
+    },
+    {
+      "name": "configurationUpdateHandler used",
+      "description": "At least one cell uses cell.configurationUpdateHandler to apply state-dependent styling (e.g. text color change on selection or highlight)",
+      "max_score": 7
+    },
+    {
+      "name": "VoiceOver properties set",
+      "description": "At least one custom or non-standard element has isAccessibilityElement = true and sets both accessibilityLabel and accessibilityTraits",
+      "max_score": 7
+    },
+    {
+      "name": "UIAccessibilityCustomAction used",
+      "description": "The row with a swipe action also sets accessibilityCustomActions with at least one UIAccessibilityCustomAction exposing an equivalent action for VoiceOver users",
+      "max_score": 8
+    },
+    {
+      "name": "UIKeyboardLayoutGuide used",
+      "description": "The text input at the bottom is constrained to view.keyboardLayoutGuide.topAnchor — does NOT use UIResponder keyboard notifications (NSNotification.Name.UIKeyboardWillShow etc.)",
+      "max_score": 8
+    },
+    {
+      "name": "viewIsAppearing used",
+      "description": "Initial geometry-dependent or trait-based layout work is done in viewIsAppearing — NOT in viewWillAppear",
+      "max_score": 7
+    },
+    {
+      "name": "#available guards iOS 26+ APIs",
+      "description": "Any iOS 26-specific API (e.g. .flushUpdates animation option, updateProperties, Liquid Glass) is wrapped in if #available(iOS 26, *) with a fallback — OR no iOS 26 APIs are used at all",
+      "max_score": 7
+    }
+  ]
+}

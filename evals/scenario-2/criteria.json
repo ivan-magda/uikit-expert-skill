@@ -1,0 +1,66 @@
+{
+  "context": "Tests a UIKit navigation implementation across three screens with custom branded navigation bar styling and deep-link support. Criteria verify that the agent follows UIKit best-practices for appearance configuration, title display, lifecycle placement, concurrent transition safety, and atomic deep-link navigation.",
+  "type": "weighted_checklist",
+  "checklist": [
+    {
+      "name": "All 4 appearance slots set",
+      "description": "Sets all four UINavigationBarAppearance slots: standardAppearance, scrollEdgeAppearance, compactAppearance, AND compactScrollEdgeAppearance (the last requires an #available guard for iOS 15+)",
+      "max_score": 12
+    },
+    {
+      "name": "Per-VC appearance on navigationItem",
+      "description": "Per-screen appearance overrides are applied to navigationItem (e.g. navigationItem.standardAppearance, navigationItem.scrollEdgeAppearance) rather than directly mutating navigationController?.navigationBar in viewWillAppear",
+      "max_score": 10
+    },
+    {
+      "name": "Appearance set in viewDidLoad",
+      "description": "The per-VC appearance is configured inside viewDidLoad (not viewWillAppear, not viewIsAppearing, not an initializer)",
+      "max_score": 8
+    },
+    {
+      "name": "setViewControllers for deep link",
+      "description": "The deep-link function/method uses setViewControllers(_:animated:) to atomically replace the navigation stack — NOT a series of sequential pushViewController calls",
+      "max_score": 12
+    },
+    {
+      "name": "Concurrent transition guard",
+      "description": "Navigation pushes or pops are guarded by checking transitionCoordinator — the implementation returns early (or enqueues) when a transition is already in progress (e.g. guard transitionCoordinator == nil else { return })",
+      "max_score": 10
+    },
+    {
+      "name": "prefersLargeTitles set once",
+      "description": "navigationBar.prefersLargeTitles = true is set exactly once (on the navigation controller or in one place during setup), NOT repeated per view controller",
+      "max_score": 8
+    },
+    {
+      "name": "largeTitleDisplayMode per VC in viewDidLoad",
+      "description": "Each view controller sets navigationItem.largeTitleDisplayMode in viewDidLoad to control whether it shows a large or standard title (e.g. .always on Home, .never on Detail)",
+      "max_score": 8
+    },
+    {
+      "name": "super called in lifecycle overrides",
+      "description": "Every UIViewController lifecycle method that is overridden (viewDidLoad, viewWillAppear, viewIsAppearing, viewDidDisappear, etc.) calls the corresponding super method",
+      "max_score": 8
+    },
+    {
+      "name": "#available guard for iOS 26+ or iOS 15+ APIs",
+      "description": "Any API that requires a minimum iOS version higher than the deployment target (e.g. compactScrollEdgeAppearance requiring iOS 15, any iOS 26 APIs) is wrapped in an #available(...) check with a sensible fallback",
+      "max_score": 8
+    },
+    {
+      "name": "viewIsAppearing for geometry work",
+      "description": "Any geometry-dependent work (scroll-to-index, trait-based layout adjustments) is placed in viewIsAppearing rather than viewWillAppear",
+      "max_score": 8
+    },
+    {
+      "name": "design_notes.md explains appearance strategy",
+      "description": "The design_notes.md file explicitly describes how navigation bar appearance was configured across multiple states and which API was used for the transparent bar on the Detail screen",
+      "max_score": 4
+    },
+    {
+      "name": "design_notes.md explains deep-link strategy",
+      "description": "The design_notes.md file explicitly describes the deep-link approach and mentions how concurrent/rapid transitions are handled",
+      "max_score": 4
+    }
+  ]
+}
