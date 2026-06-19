@@ -1,0 +1,61 @@
+{
+  "context": "Tests an ArticleCardView UIView subclass for correct Dynamic Type support, dark mode semantic colors, trait change registration using the modern iOS 17+ API, VoiceOver accessibility properties, and a retain-cycle-free CADisplayLink shimmer animation via the weak proxy pattern.",
+  "type": "weighted_checklist",
+  "checklist": [
+    {
+      "name": "Dynamic Type font API",
+      "description": "Title and summary labels use UIFont.preferredFont(forTextStyle:) — not UIFont(name:size:) or UIFont.systemFont(ofSize:) with a hardcoded size",
+      "max_score": 10
+    },
+    {
+      "name": "adjustsFontForContentSizeCategory",
+      "description": "Both labels have adjustsFontForContentSizeCategory set to true",
+      "max_score": 10
+    },
+    {
+      "name": "Semantic text colors",
+      "description": "Labels use semantic colors such as .label, .secondaryLabel, or .tertiaryLabel — NOT UIColor(red:green:blue:alpha:) or fixed color constants",
+      "max_score": 10
+    },
+    {
+      "name": "Semantic background color",
+      "description": "The card view or container uses a semantic background color such as .systemBackground, .secondarySystemBackground, or .tertiarySystemBackground — NOT a hardcoded white or black UIColor",
+      "max_score": 8
+    },
+    {
+      "name": "CGColor re-resolved on trait change",
+      "description": "Any CALayer border color (CGColor) is re-resolved inside a trait-change handler — not only set once at initialization",
+      "max_score": 12
+    },
+    {
+      "name": "registerForTraitChanges used",
+      "description": "Trait changes are registered via registerForTraitChanges(_:handler:) or registerForTraitChanges(_:target:action:) — the file does NOT contain traitCollectionDidChange",
+      "max_score": 12
+    },
+    {
+      "name": "No traitCollectionDidChange override",
+      "description": "The file does NOT override traitCollectionDidChange — only the modern registerForTraitChanges API is present",
+      "max_score": 8
+    },
+    {
+      "name": "accessibilityLabel set",
+      "description": "accessibilityLabel is set on the card view (or its labels are grouped under the card as an accessibility element)",
+      "max_score": 8
+    },
+    {
+      "name": "accessibilityTraits set",
+      "description": "accessibilityTraits is explicitly set on the card view or a custom element (e.g., .staticText, .button, or a combined trait)",
+      "max_score": 6
+    },
+    {
+      "name": "accessibilityHint set",
+      "description": "accessibilityHint is set on the card view or custom element to describe the available action",
+      "max_score": 6
+    },
+    {
+      "name": "Weak proxy for CADisplayLink",
+      "description": "CADisplayLink is NOT created with target: self directly on ArticleCardView. Instead a separate weak-proxy object (a class that holds a weak reference to the card view) is used as the CADisplayLink target",
+      "max_score": 10
+    }
+  ]
+}

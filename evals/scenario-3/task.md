@@ -1,26 +1,24 @@
-# Activity Monitor View Controller
+# Stopwatch Screen with Delegate Notifications and Lap Callbacks
 
-## Problem/Feature Description
+## Problem Description
 
-Your team is building an iOS fitness tracking app. One of the key screens is an "Activity Monitor" that shows real-time workout stats: elapsed time since the session started, a smoothly animated progress ring showing current effort level, and live status messages that reflect app lifecycle events (such as when the app is backgrounded and then foregrounded again). The screen also needs to report session milestones (like every 30 seconds) back to a parent coordinator object via a custom delegate, and it must load the user's personal record data from the server when the monitor first appears.
+Your team is building a fitness tracking app and needs a `StopwatchViewController` that lets users time their workouts. The stopwatch runs in the background and notifies a coaching component whenever a milestone is reached (every 10 seconds) — for example, to trigger an audio cue or update a remote session log. Users can also record laps during a run, and each lap recording triggers a callback that internally formats and stores the split time using another closure.
 
-This screen is presented modally during active workout sessions and may be pushed and popped frequently as the user navigates. It must not leak memory across presentations — your QA lead has already flagged retain cycles in a prototype that caused the app to balloon in memory after several workout sessions. The engineering goal is to implement the `ActivityMonitorViewController` with correct memory management for every concurrency primitive in use.
+The engineering lead has flagged a critical concern: previous screens in the app were leaking memory when dismissed, causing the app to accumulate stale background timers and observers. This stopwatch must be implemented cleanly so that when the user navigates away, all resources are properly released and no background activity continues. The deallocation must be verifiable in the Xcode console during development.
+
+The stopwatch screen should support a clean architecture that separates the milestone notification responsibility via a delegate, while the lap feature uses a stored callback closure.
 
 ## Output Specification
 
-Produce the following Swift source files in your working directory:
+Implement the `StopwatchViewController` as a single Swift source file named `StopwatchViewController.swift`. The file should include:
 
-- `ActivityMonitorViewController.swift` — the main UIKit view controller implementing the activity monitor screen. It should include:
-  - A `Timer` that fires every second to update the elapsed time display
-  - A `CADisplayLink` driving a smooth progress ring animation
-  - A `NotificationCenter` observer tracking `UIApplication.didBecomeActiveNotification` and `UIApplication.didEnterBackgroundNotification`
-  - A custom delegate protocol and a `delegate` property for reporting milestone events to a parent object
-  - An async `Task` that fetches personal record data from a remote endpoint (you may use `URLSession.shared.data(from:)` with any placeholder URL — the grader will not execute the code, only read it)
-  - A label or text element displaying elapsed time, a simple view or layer representing the progress ring, and status text showing the last app lifecycle event received
+- `StopwatchDelegate` protocol with at least one method called when a milestone is reached
+- `StopwatchViewController` class that:
+  - Starts a repeating timer on `viewDidAppear` (or similar) that fires every second
+  - Notifies the delegate every 10 seconds
+  - Exposes a `lapCallback` property (a stored closure) that can be set externally; when invoked, it internally creates and calls another closure to format/store the lap time
+  - Stops the timer appropriately when the screen is no longer visible
+  - Logs to the console when it is deallocated
+  - Calls `super` in all overridden lifecycle methods
 
-- `memory_analysis.md` — a markdown document that explicitly describes:
-  - For each memory-management pattern used (Timer, CADisplayLink, NotificationCenter, delegate, async Task, any escaping closures), how retain cycles are prevented
-  - Where `[weak self]` appears and why it is needed in each location
-  - Where Tasks are stored and when they are cancelled
-  - Where the NotificationCenter observer token is removed
-  - Where the Timer is invalidated and the CADisplayLink is removed from its run loop
+The file should compile without errors against UIKit/Foundation (no external dependencies needed).

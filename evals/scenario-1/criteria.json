@@ -1,71 +1,51 @@
 {
-  "context": "Tests whether the agent follows UIKit Auto Layout and animation best practices when implementing an expandable card UI. The scenario covers constraint setup, batch activation, constraint reuse, animation patterns, lifecycle usage, and constraint identifiers.",
+  "context": "Tests whether the agent uses modern UICollectionView APIs correctly: stable identifiers in diffable data source snapshots, type-safe CellRegistration stored as a property, the correct initial-load and update methods, compositional layout, and configuration-based cell styling with state-driven background handling.",
   "type": "weighted_checklist",
   "checklist": [
     {
-      "name": "translatesAutoresizingMask disabled",
-      "description": "All programmatically created UIViews have translatesAutoresizingMaskIntoConstraints set to false before constraints are added",
+      "name": "Stable snapshot IDs",
+      "description": "The diffable data source snapshot stores Contact IDs (e.g., UUID or Int) as item identifiers, NOT full Contact model structs",
+      "max_score": 14
+    },
+    {
+      "name": "CellRegistration stored property",
+      "description": "UICollectionView.CellRegistration is stored as a lazy property (or instance property) on the view controller, NOT created inside the cell provider closure",
+      "max_score": 14
+    },
+    {
+      "name": "No string-based dequeue",
+      "description": "Does NOT use string-based register/dequeue methods (register(_:forCellWithReuseIdentifier:) / dequeueReusableCell(withReuseIdentifier:for:))",
       "max_score": 10
     },
     {
-      "name": "Batch constraint activation",
-      "description": "Uses NSLayoutConstraint.activate([...]) to activate multiple constraints together — does NOT use individual .isActive = true calls for setting up constraints",
+      "name": "Initial load method",
+      "description": "Uses applySnapshotUsingReloadData(_:) (or applySnapshotUsingReloadData(_:completion:)) for the initial population of the collection view",
+      "max_score": 12
+    },
+    {
+      "name": "reconfigureItems for update",
+      "description": "The updateContact method uses reconfigureItems(_:) on the snapshot (not reloadItems) to update a contact's name",
+      "max_score": 12
+    },
+    {
+      "name": "Compositional layout",
+      "description": "Uses UICollectionViewCompositionalLayout (not UICollectionViewFlowLayout or a custom layout subclass)",
       "max_score": 10
     },
     {
-      "name": "Constraints created once",
-      "description": "Height or visibility constraints for cards are created once (in init or viewDidLoad) and stored as properties — does NOT remove and recreate constraints on each tap",
+      "name": "UIContentConfiguration for content",
+      "description": "Uses UIContentConfiguration (e.g., UIListContentConfiguration) to set cell content (name/email text) rather than directly setting cell.textLabel or subview labels",
       "max_score": 10
     },
     {
-      "name": "Toggle via isActive or constant",
-      "description": "Expand/collapse is implemented by toggling constraint.isActive or modifying constraint.constant — not by creating new constraints on each state change",
+      "name": "configurationUpdateHandler for selection",
+      "description": "Uses configurationUpdateHandler on the cell to apply background styling based on selection/highlight state, rather than overriding isSelected or setSelected(_:animated:)",
       "max_score": 10
     },
     {
-      "name": "Constraint animation: flush first",
-      "description": "Before animating constraint changes, calls layoutIfNeeded() on the superview to flush pending layout changes prior to starting the animation",
+      "name": "Unique item identifiers",
+      "description": "The 20 mock contacts all have distinct IDs — no duplicate identifiers in the initial snapshot",
       "max_score": 8
-    },
-    {
-      "name": "Constraint animation: animate inside block",
-      "description": "Calls layoutIfNeeded() inside the UIView.animate animation block (on superview) to drive the animated layout transition",
-      "max_score": 8
-    },
-    {
-      "name": "No required priority changes at runtime",
-      "description": "Any constraints whose priority is changed at runtime are initialized with a priority of 999 (or lower) — never created at .required (1000) and then changed",
-      "max_score": 8
-    },
-    {
-      "name": "Constraint identifiers on key constraints",
-      "description": "At least one key constraint (e.g. height or expanded constraint) has a constraint.identifier string set on it",
-      "max_score": 7
-    },
-    {
-      "name": "viewDidLoad for one-time setup",
-      "description": "Subview creation and constraint setup occurs in viewDidLoad — geometry-dependent work is NOT performed in viewDidLoad",
-      "max_score": 7
-    },
-    {
-      "name": "viewDidLayoutSubviews correct usage",
-      "description": "If viewDidLayoutSubviews is overridden, it is only used for bounds-dependent layer adjustments (e.g. cornerRadius) — NOT for one-time subview or constraint setup",
-      "max_score": 7
-    },
-    {
-      "name": "super called in lifecycle overrides",
-      "description": "Every overridden UIViewController lifecycle method (viewDidLoad, viewWillAppear, viewDidLayoutSubviews, etc.) calls super",
-      "max_score": 7
-    },
-    {
-      "name": "UIStackView nesting depth",
-      "description": "UIStackView nesting is at most 1–2 levels deep in any reusable cell or card view — does NOT have deeply nested stacks (3+ levels)",
-      "max_score": 4
-    },
-    {
-      "name": "iOS 26+ flushUpdates availability gating",
-      "description": "If the .flushUpdates animation option is used, it is wrapped in #available(iOS 26, *) with a fallback for older OS versions",
-      "max_score": 4
     }
   ]
 }

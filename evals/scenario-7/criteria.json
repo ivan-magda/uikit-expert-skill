@@ -1,0 +1,46 @@
+{
+  "context": "Tests whether the agent correctly manages Swift Concurrency Task lifecycle inside a UIViewController: storing Task references, cancelling in viewDidDisappear, checking Task.isCancelled before UI updates, using Task {} (not Task.detached), avoiding redundant @MainActor annotations on UIViewController subclass methods, and gating any iOS 26+ APIs with #available.",
+  "type": "weighted_checklist",
+  "checklist": [
+    {
+      "name": "Task stored as property",
+      "description": "A Task (or Task<Void, Never>) is stored as an instance property of FeedViewController, not as a local variable",
+      "max_score": 15
+    },
+    {
+      "name": "Cancel in viewDidDisappear",
+      "description": "The stored Task is cancelled inside viewDidDisappear(_:), not inside deinit",
+      "max_score": 15
+    },
+    {
+      "name": "isCancelled check before UI update",
+      "description": "Task.isCancelled (or task.isCancelled) is checked after the await on fetchArticles() and before any UI update (e.g. before applying a snapshot or reloading data)",
+      "max_score": 15
+    },
+    {
+      "name": "Task {} not Task.detached",
+      "description": "Uses Task { } to start the async work — does NOT use Task.detached { }",
+      "max_score": 15
+    },
+    {
+      "name": "No redundant @MainActor on VC methods",
+      "description": "No method inside the UIViewController subclass is annotated with @MainActor (the class inherits main-actor isolation implicitly)",
+      "max_score": 10
+    },
+    {
+      "name": "[weak self] in escaping closure",
+      "description": "The Task closure (or any other escaping closure) captures self as [weak self]",
+      "max_score": 10
+    },
+    {
+      "name": "#available guard for iOS 26+ APIs",
+      "description": "If any iOS 26+ Swift Concurrency API is used (e.g. defaultIsolation, @concurrent), it is wrapped in an #available(iOS 26, *) check with a fallback code path; OR no iOS 26+ APIs are used at all (criterion is waived if the implementation contains no iOS 26+ APIs)",
+      "max_score": 10
+    },
+    {
+      "name": "super called in lifecycle overrides",
+      "description": "Every overridden UIViewController lifecycle method (viewDidLoad, viewDidAppear, viewDidDisappear, etc.) calls the corresponding super method",
+      "max_score": 10
+    }
+  ]
+}

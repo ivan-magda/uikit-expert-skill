@@ -1,21 +1,22 @@
-# Photo Grid Screen
+# Profile Screen with Photo Strip and Collapsible Bio
 
-## Problem/Feature Description
+## Problem Description
 
-Your team is building a travel photo discovery app in UIKit. The app needs a full-screen photo gallery where users can browse a large collection of destination photos. The photos live on a remote server and must be downloaded on demand as the user scrolls. Initial loading should be fast and the grid should scroll smoothly without jank, even on older devices.
+The mobile team at a photo-sharing app needs a profile screen built entirely in code (no Storyboard or XIB). The screen shows a horizontally scrollable strip of the user's photos at the top, followed by a bio section that can be expanded or collapsed by the user. When navigating to a profile from a photo detail view, the app should restore context by scrolling the photo strip to the last photo the user was viewing.
 
-A previous attempt at this screen was scrapped because it consumed too much memory — the app was crashing on devices with 2GB RAM when browsing large photo libraries. The root cause was traced back to how images were decoded and cached: full-resolution bitmaps were being held in memory even for thumbnail-sized cells. The new implementation needs to be memory-efficient from the ground up.
+The profile screen is used from multiple entry points: the main feed taps into it mid-scroll, and deep links from push notifications can pre-select a specific photo. The current placeholder implementation loses the user's place every time the screen appears, which is jarring. It also triggers layout warnings in the console that make it hard to debug constraint issues in production crash logs.
 
-The grid should display at least 20 photos in a multi-column layout. Images must load asynchronously so the UI stays responsive. The implementation must handle rapid scrolling correctly: cells that scroll offscreen should not continue doing work, and a cell that is reused for a new photo must not momentarily show the wrong image. The data layer should be designed so that updating a single photo's metadata (e.g. adding a "liked" badge) does not unnecessarily reload every other cell.
+The engineering team has agreed on a few requirements: the bio section must animate smoothly when toggling between expanded and collapsed states, the animation must not cause layout thrashing, and the code must be clean enough for a junior engineer to follow which constraint is which from the crash logs alone.
 
 ## Output Specification
 
-Produce Swift source files (`.swift`) that implement the photo grid screen. You may split the code across as many files as makes sense. At minimum, provide:
+Implement the `ProfileViewController` as a single Swift file named `ProfileViewController.swift`. The view controller must:
 
-- A view controller that sets up and manages the collection view
-- A cell class for displaying individual photos
-- Any supporting types (image loader, cache, model, etc.) as separate files if appropriate
+- Be fully programmatic (no Storyboard/XIB)
+- Accept an initializer parameter for the index of the initially-selected photo (e.g., `init(selectedPhotoIndex: Int)`)
+- Display a horizontally scrolling collection view of photos (use placeholder images or solid-color cells — actual photo loading is not required for this task)
+- Show a bio section below the photo strip that can be expanded and collapsed by tapping a button; the transition must be animated
+- Scroll the photo strip to the selected photo index when the screen opens
+- Use at least 8 sample photos so the scroll behavior is testable
 
-Also write a short `summary.md` (plain text or Markdown) explaining the key design decisions you made — particularly around image loading, memory management, and collection view data management.
-
-The agent should not run the app or require a simulator; only the written source files will be reviewed.
+The file should be a self-contained UIKit view controller implementation. Do not produce a full Xcode project — just the Swift source file.

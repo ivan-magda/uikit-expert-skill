@@ -1,3 +1,1 @@
-{
-  "description": "Accessible, adaptive settings screen with Dark Mode and Dynamic Type"
-}
+{ "description": "Async image loading with downsampling and cell reuse in UICollectionView" }

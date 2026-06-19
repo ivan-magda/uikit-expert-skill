@@ -1,0 +1,51 @@
+{
+  "context": "Tests whether the agent correctly implements UIKit child view controller containment APIs in the mandatory order for both adding and removing child view controllers, calls super in lifecycle overrides, uses viewDidLoad for one-time setup, and applies Auto Layout correctly with programmatic views.",
+  "type": "weighted_checklist",
+  "checklist": [
+    {
+      "name": "addChild before addSubview",
+      "description": "When adding a child VC, addChild(child) appears before child.view is added to the view hierarchy (addSubview or addArrangedSubview)",
+      "max_score": 15
+    },
+    {
+      "name": "addSubview before didMove",
+      "description": "When adding a child VC, the child's view is added to the superview before child.didMove(toParent: self) is called",
+      "max_score": 15
+    },
+    {
+      "name": "willMove before removeFromSuperview",
+      "description": "When removing a child VC, child.willMove(toParent: nil) is called before child.view.removeFromSuperview()",
+      "max_score": 12
+    },
+    {
+      "name": "removeFromSuperview before removeFromParent",
+      "description": "When removing a child VC, child.view.removeFromSuperview() is called before child.removeFromParent()",
+      "max_score": 12
+    },
+    {
+      "name": "super in viewDidLoad",
+      "description": "The viewDidLoad override calls super.viewDidLoad()",
+      "max_score": 8
+    },
+    {
+      "name": "super in other lifecycle overrides",
+      "description": "Any other lifecycle overrides (viewWillAppear, viewDidAppear, viewWillDisappear, etc.) call their respective super method",
+      "max_score": 8
+    },
+    {
+      "name": "viewDidLoad for one-time setup",
+      "description": "The child VC embedding setup (addChild, addSubview, constraints, didMove) is performed inside viewDidLoad, not in viewWillAppear or viewDidAppear",
+      "max_score": 10
+    },
+    {
+      "name": "translatesAutoresizingMaskIntoConstraints = false",
+      "description": "child.view.translatesAutoresizingMaskIntoConstraints is set to false for every child view controller's view before constraints are activated",
+      "max_score": 10
+    },
+    {
+      "name": "NSLayoutConstraint.activate used",
+      "description": "Constraints are activated using NSLayoutConstraint.activate([...]) — not using individual constraint.isActive = true calls",
+      "max_score": 10
+    }
+  ]
+}

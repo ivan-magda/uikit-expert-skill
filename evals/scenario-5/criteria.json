@@ -1,0 +1,36 @@
+{
+  "context": "Tests whether the agent uses UIKeyboardLayoutGuide (iOS 15+) to handle keyboard avoidance in a chat compose screen instead of the legacy keyboard notification approach, sets followsUndockedKeyboard for iPad support, uses viewDidLoad for setup, and follows Auto Layout best practices for programmatic views.",
+  "type": "weighted_checklist",
+  "checklist": [
+    {
+      "name": "KeyboardLayoutGuide anchor",
+      "description": "Uses view.keyboardLayoutGuide.topAnchor as a constraint anchor to pin the compose bar's bottom (or the scroll view's bottom) above the keyboard",
+      "max_score": 20
+    },
+    {
+      "name": "No keyboard notifications",
+      "description": "Does NOT use UIResponder.keyboardWillShowNotification, keyboardDidShowNotification, keyboardWillHideNotification, or keyboardDidHideNotification for keyboard avoidance",
+      "max_score": 20
+    },
+    {
+      "name": "followsUndockedKeyboard",
+      "description": "Sets view.keyboardLayoutGuide.followsUndockedKeyboard = true to support iPad floating keyboard",
+      "max_score": 15
+    },
+    {
+      "name": "Setup in viewDidLoad",
+      "description": "Subview creation, constraint activation, and keyboard layout guide configuration are performed inside viewDidLoad (not viewWillAppear, viewIsAppearing, or viewDidLayoutSubviews)",
+      "max_score": 15
+    },
+    {
+      "name": "translatesAutoresizingMaskIntoConstraints",
+      "description": "Sets translatesAutoresizingMaskIntoConstraints = false on every programmatically created view before applying constraints",
+      "max_score": 15
+    },
+    {
+      "name": "NSLayoutConstraint.activate",
+      "description": "Uses NSLayoutConstraint.activate([...]) to activate constraints — does NOT call .isActive = true individually on any constraint",
+      "max_score": 15
+    }
+  ]
+}

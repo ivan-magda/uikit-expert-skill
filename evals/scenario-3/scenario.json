@@ -1,1 +1,1 @@
-{ "description": "Memory-safe UIKit view controller with Timer, CADisplayLink, NotificationCenter, delegate, and async Task" }
+{ "description": "Memory-safe Timer, delegate, and nested closure patterns" }

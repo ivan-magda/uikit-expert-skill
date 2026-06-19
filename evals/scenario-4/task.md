@@ -1,34 +1,21 @@
-# Preferences Screen for a Productivity App
+# Photo Grid: Efficient Large-Image Display
 
-## Problem Description
+## Problem/Feature Description
 
-The mobile team at a productivity startup is building a Settings screen for their iOS app. Users need a clean, professional preferences panel that works beautifully across all device conditions: light and dark appearances, any Dynamic Type size (including accessibility sizes), and full VoiceOver navigation for users who rely on screen readers.
+Your team is building an iOS app for a photography studio that needs to showcase a portfolio of high-resolution photos in a scrollable grid. The app currently loads images directly from disk and displays them full-size — testers have reported that the app crashes on older devices when browsing more than a dozen photos, and scrolling is choppy even on modern hardware.
 
-The screen should be a scrollable list of preference categories, implemented as a UICollectionView. It must contain at least three distinct sections — for example: **Profile**, **Appearance**, and **Notifications** — with multiple rows in each section. The layout should use the standard inset-grouped list appearance that users expect in a native iOS settings screen.
+You've been asked to rewrite the photo grid screen from scratch. The grid will display many photos at once in a compact thumbnail layout, so memory efficiency is critical. The implementation must scroll smoothly, even when the user flicks rapidly through hundreds of thumbnails. Cells will be recycled as the user scrolls, and the loading logic must handle that gracefully — a thumbnail that was loading for a cell that's been recycled should not end up in the wrong cell once the recycle is done.
 
-The list should include at least one row that has a swipe-to-delete or other swipe action (such as "Reset to defaults" for a section). VoiceOver users must also be able to trigger this action without swiping, since they cannot perform standard swipe gestures on list items.
-
-At the bottom of the screen there should be a text input area — for example a "Display Name" field or a short bio — that adjusts correctly when the software keyboard appears, so the input is never obscured.
-
-The team wants the screen to look polished and respond correctly to:
-- The user switching between light and dark mode at runtime
-- The user changing their preferred text size in iOS Settings
-- VoiceOver being active
-
-The screen must be wired into a UINavigationController so the navigation bar is visible.
+The data model is simple: each photo has a stable UUID and a URL pointing to a local image file. You can synthesize a set of test photos programmatically (using `UIGraphicsImageRenderer` or similar to draw solid-color images to temp files) to exercise the grid — no external downloads needed. The grid itself should use a 3-column layout.
 
 ## Output Specification
 
-Produce the following Swift source files in your working directory:
+Produce a self-contained Swift source file named `PhotoGridViewController.swift` containing the full implementation. The file should include:
 
-- `SettingsViewController.swift` — the main UICollectionView-based settings screen
-- `SettingsCell.swift` — any custom cell type(s) used in the collection view
-- `AppDelegate.swift` — minimal app entry point wiring the settings screen into a UINavigationController
-- `accessibility_report.md` — a short report (markdown) documenting:
-  - Which `accessibilityLabel`, `accessibilityTraits`, and `accessibilityHint` values are set on each custom or non-standard element
-  - How swipe actions on list rows are made accessible to VoiceOver users who cannot perform standard swipe gestures
-  - How CALayer color properties (e.g. `borderColor`, `shadowColor`) are kept in sync with dark mode trait changes at runtime
+- `PhotoGridViewController`: the main view controller
+- `PhotoCell`: a `UICollectionViewCell` subclass used by the grid
+- Any supporting types (model, cache, etc.) needed to make it work
 
-All Swift files should be compilable and self-contained (no external dependencies beyond UIKit/SwiftUI). You do not need to run or build the project — just produce the source files.
+The app does not need to compile and run in isolation (no `AppDelegate` or `SceneDelegate` required), but the implementation should be complete enough that a reviewer can assess correctness from the source alone.
 
-Clean up any downloaded or generated files larger than 50 MB before finishing.
+Do not leave any large temporary image files (>50 MB) on disk when finished.

@@ -1,1 +1,1 @@
-{ "description": "Expandable card UI with constraint animation" }
+{ "description": "Contacts list with diffable data source and type-safe cell registration" }

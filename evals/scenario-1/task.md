@@ -1,18 +1,26 @@
-# Expandable FAQ Cards
+# Contacts List View Controller
 
-## Problem/Feature Description
+## Problem Description
 
-Your team is building a FAQ screen for a customer-facing iOS app. Users have complained that the previous screen was overwhelming — it showed all answer text at once, making it hard to scan. The new design calls for a list of question cards where each card shows only the question title by default. Tapping a card should smoothly reveal (or hide) the full answer text with an animated transition. Multiple cards can be expanded simultaneously.
+The mobile team at a mid-sized company is building a new iOS app to replace their aging address book integration. The app needs a contacts screen that loads a list of people (name + email) and lets support staff quickly update a contact's display name without refreshing the whole list — a common action when someone changes their name after a company merger.
 
-The implementation must be done entirely in UIKit with programmatic Auto Layout — no Storyboards or XIBs. The screen should work cleanly without any runtime layout warnings appearing in the debug console. The engineering lead has emphasized that this kind of expanding/collapsing layout is a classic source of Auto Layout performance issues, so the constraint setup must be efficient and the animations must be smooth.
+The previous implementation used a table view with string-based cell identifiers and full model reloads on every update. This caused visible flicker when a name was edited and made the app feel slow. The engineering lead has asked you to rebuild the contacts screen as a `ContactsViewController` using a collection view, keeping the code programmatic (no storyboards or nibs).
+
+The view controller should be self-contained and ready to drop into a `UINavigationController`. Hard-code an initial list of 20 contacts so the screen is fully usable without a real backend. Each contact should have a unique identifier, a full name, and an email address.
+
+The screen must also support:
+- Efficiently updating a single contact's display name without touching any other cells or reloading the whole list
+- Cells that visually reflect selection state (e.g., a tinted or highlighted background when a cell is selected)
+
+The layout does not need to be elaborate, but it should be built with extensibility in mind — the list may gain multiple sections or supplementary views in the future.
 
 ## Output Specification
 
-Produce a Swift source file named `FAQViewController.swift` that contains a complete, runnable UIKit view controller implementation of the FAQ screen. The file should include:
+Produce a single Swift source file named `ContactsViewController.swift` containing the complete `ContactsViewController` implementation. The file should include:
 
-- A `FAQViewController` class that manages a list of at least 4 FAQ items
-- A custom card view or cell class for displaying each FAQ item with its expand/collapse behavior
-- All Auto Layout setup and constraint management code
-- Animation logic for the expand/collapse transition
+- The `Contact` model type (with an `id` field, `name`, and `email`)
+- The `ContactsViewController` class with all collection view setup done programmatically
+- A public (or internal) `updateContact(_ contact: Contact)` method that updates the named contact efficiently
+- Mock data for 20 contacts hardcoded inside the view controller
 
-The file should be self-contained — someone reviewing it should be able to understand the full implementation by reading it alone.
+No external dependencies, third-party libraries, or additional files are required. The file should compile against iOS 15+ with Xcode's standard UIKit framework.
