@@ -23,10 +23,14 @@ timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self]
 
 ### When you do NOT need `[weak self]`
 
-**Non-escaping closures cannot create retain cycles** — the closure executes immediately and is never stored. This includes `map`, `filter`, `forEach`, `compactMap`, and `UIView.animate`:
+A retain cycle needs a closure that `self` (directly or indirectly) keeps alive. Three kinds of closures never get into that position:
+
+- **Non-escaping closures** — `map`, `filter`, `forEach`, `compactMap`. They run during the call and are never stored.
+- **Escaping closures that run once and are then released** — the `UIView.animate` animations block and `DispatchQueue.main.async`. Their parameter types are `@escaping`, but nothing you own stores them, so the strong `self` only lives until the closure has run. (A long delay, such as `asyncAfter`, does extend `self`'s lifetime for that long — use `[weak self]` there if that matters.)
+- **Closures that receive the object as a parameter** — the `registerForTraitChanges` handler passes the observed object in (`self: Self`), so there is nothing to capture.
 
 ```swift
-// ✅ No [weak self] needed — UIView.animate is non-escaping
+// ✅ No [weak self] needed — the block runs once and is released
 UIView.animate(withDuration: 0.3) {
     self.view.alpha = 0  // Perfectly safe
 }
@@ -107,16 +111,21 @@ class TimerViewController: UIViewController {
 }
 ```
 
-The fix uses the block-based API (iOS 10+) with `[weak self]` and invalidates in a lifecycle method that is guaranteed to run:
+The fix uses the block-based API (iOS 10+) with `[weak self]` and invalidates in a lifecycle method that is guaranteed to run. Start the timer in the matching appearance callback: a timer created in `viewDidLoad` but invalidated on disappearance never runs again after the user pushes another screen and comes back.
 
 ```swift
-// ✅ Block-based API + [weak self] + invalidate in viewWillDisappear
+// ✅ Block-based API + [weak self] + start/stop balanced across appearance
 class TimerViewController: UIViewController {
     private var timer: Timer?
     private var count = 0
 
-    override func viewDidLoad() {
-        super.viewDidLoad()
+    override func viewIsAppearing(_ animated: Bool) {
+        super.viewIsAppearing(animated)
+        startTimer()         // Restarts on every appearance
+    }
+
+    private func startTimer() {
+        timer?.invalidate()  // Idempotent — appearance callbacks can repeat without a disappearance
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             guard let self else { return }
             count += 1
@@ -247,8 +256,10 @@ final class WeakProxy: NSObject {
 class AnimationVC: UIViewController {
     private var displayLink: CADisplayLink?
 
-    override func viewDidLoad() {
-        super.viewDidLoad()
+    // Created per appearance because it is invalidated per disappearance
+    override func viewIsAppearing(_ animated: Bool) {
+        super.viewIsAppearing(animated)
+        displayLink?.invalidate()
         let proxy = WeakProxy(target: self, action: #selector(handleFrame(_:)))
         displayLink = CADisplayLink(
             target: proxy,
@@ -320,7 +331,7 @@ class NestedVC: UIViewController {
 }
 ```
 
-**The rule:** non-escaping inner closures (like `UIView.animate` or `DispatchQueue.main.async`) are safe without re-capturing. But any inner closure **stored as a property on self** must re-capture `[weak self]`. Swift 5.8's SE-0365 actually helps here — the compiler requires explicit `self` in nested closures within a `[weak self]` outer closure, serving as a built-in safety net.
+**The rule:** inner closures that run once and are released (like `UIView.animate` or `DispatchQueue.main.async`) are safe without re-capturing. But any inner closure **stored as a property on self** must re-capture `[weak self]`. Swift 5.8's SE-0365 actually helps here — the compiler requires explicit `self` in nested closures within a `[weak self]` outer closure, serving as a built-in safety net.
 
 ---
 
@@ -590,14 +601,14 @@ If a legacy API never calls its completion handler, the continuation is never re
 
 The retain cycle landscape in Swift has matured but not simplified. The four classical traps — Timer, NotificationCenter, CADisplayLink, and nested closures — remain exactly as dangerous as ever in UIKit codebases. Swift concurrency adds a fifth category where `Task` silently holds objects alive without forming a traditional cycle. **The key insight is that `deinit` is unreliable as a cleanup mechanism** for anything involved in the very cycle you're trying to break; lifecycle methods like `viewWillDisappear` are the correct invalidation point.
 
-Three practices prevent the vast majority of leaks: always use `[weak self]` in escaping closures (unless you can prove lifetime), always declare delegates as `weak var` on `AnyObject`-constrained protocols, and always cancel Tasks in view lifecycle methods rather than `deinit`. Combine that with routine Memory Graph Debugger checks — especially watching instance counts after repeated navigation — and `deinit` print statements during development, and most leaks become visible before they ship. The tools keep improving, but the fundamental discipline remains unchanged: **know your ownership graph, and verify it regularly**.
+Three practices prevent the vast majority of leaks: use `[weak self]` in stored or long-lived escaping closures (unless you can prove lifetime), always declare delegates as `weak var` on `AnyObject`-constrained protocols, and always cancel Tasks in view lifecycle methods rather than `deinit`. Combine that with routine Memory Graph Debugger checks — especially watching instance counts after repeated navigation — and `deinit` print statements during development, and most leaks become visible before they ship. The tools keep improving, but the fundamental discipline remains unchanged: **know your ownership graph, and verify it regularly**.
 ---
 
 ## Summary Checklist
 
-- [ ] `[weak self]` used in all escaping closures by default
+- [ ] `[weak self]` used by default in stored or long-lived escaping closures (not required for run-once closures such as `UIView.animate`)
 - [ ] `[unowned self]` reserved only for provable-lifetime cases (lazy var stored closures)
-- [ ] Timer uses block-based API with `[weak self]`; invalidated in `viewWillDisappear`
+- [ ] Timer uses block-based API with `[weak self]`; started in an appearance callback and invalidated in `viewWillDisappear`
 - [ ] CADisplayLink uses weak proxy pattern (no block API available)
 - [ ] NotificationCenter closure observer uses `[weak self]`; token removed in `deinit`
 - [ ] Nested stored closures re-capture `[weak self]` (not relying on outer `guard let self`)

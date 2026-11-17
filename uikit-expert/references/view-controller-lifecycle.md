@@ -40,6 +40,8 @@ Steps 4–8 happen inside the **same `CATransaction`**, so UI changes made in an
 
 ```swift
 // ✅ Lifecycle logger — paste into any VC for debugging
+// loadView calls super here only because this override does not build the view itself;
+// a loadView that assigns its own `view` must not call super (see below).
 final class LifecycleVC: UIViewController {
     override func loadView()                           { super.loadView(); print("1 ─ loadView") }
     override func viewDidLoad()                        { super.viewDidLoad(); print("2 ─ viewDidLoad") }
@@ -275,11 +277,11 @@ override func viewDidAppear(_ animated: Bool) {
 override func viewWillDisappear(_ animated: Bool) {
     super.viewWillDisappear(animated)
     view.endEditing(true)               // Resign first responder
-    observationTask?.cancel()           // Cancel async work
 }
 
 override func viewDidDisappear(_ animated: Bool) {
     super.viewDidDisappear(animated)
+    observationTask?.cancel()           // Cancel async work started on appearance
     NotificationCenter.default.removeObserver(self)  // Balanced with viewWillAppear
 }
 ```
@@ -473,9 +475,9 @@ override func viewWillAppear(_ animated: Bool) {
     }
 }
 
-override func viewWillDisappear(_ animated: Bool) {
-    super.viewWillDisappear(animated)
-    streamTask?.cancel()       // Breaks the infinite await
+override func viewDidDisappear(_ animated: Bool) {
+    super.viewDidDisappear(animated)
+    streamTask?.cancel()       // Breaks the infinite await; restarted by the next viewWillAppear
 }
 ```
 

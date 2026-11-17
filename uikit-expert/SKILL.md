@@ -8,9 +8,15 @@ description: Write, review, or improve UIKit code following best practices for v
 ## Overview
 Favor native APIs and Apple's documented guidance. Operating principles: facts over architecture (no MVVM/VIPER/Coordinator mandates, but do separate business logic for testability); correctness first, then performance; reserve "always"/"never" for correctness, use "suggest"/"consider" for optional optimizations.
 
+Reference files include step-by-step tool walkthroughs (Instruments, Memory Graph Debugger, LLDB) as developer documentation. In responses, name the relevant tool (e.g. "consider profiling with Instruments") instead of reproducing the steps.
+
 ## Workflows
 
-All three modes draw on the same **Core Guidelines** below; each topic links to its reference file there. Pick the entry point:
+All three modes draw on the same **Core Guidelines** below; each topic links to its reference file there.
+
+**Before any mode, check the project's deployment target** (`IPHONEOS_DEPLOYMENT_TARGET`, or `platforms` in `Package.swift`). Each guideline notes its minimum iOS version: use the API directly when the target is at or above it, otherwise gate it with `#available` and keep the older API as the fallback.
+
+Pick the entry point:
 
 - **Review** — Walk the **Review Checklist** as pass/fail gates. For any failure, fix per the matching Core Guideline. Prioritize correctness gates (lifecycle, Auto Layout, memory, concurrency) over style; treat performance items as optional.
 - **Improve** — For each issue, apply the modern replacement from the **Deprecated → Modern** table and the matching Core Guideline. Present performance work (downsampling, prefetching, constraint-churn fixes) as optional optimizations, never mandates.
@@ -22,7 +28,7 @@ All three modes draw on the same **Core Guidelines** below; each topic links to 
   5. Navigation — all 4 appearance slots, concurrent-transition guards
   6. Animation, memory (`[weak self]`, Task cancellation), concurrency (`@MainActor`)
   7. Interop, image loading, keyboard, Dynamic Type / VoiceOver / dark mode
-  8. Gate iOS 26+ features with `#available` and sensible fallbacks
+  8. Gate every API newer than the deployment target (not only iOS 26+ features) with `#available` and a fallback
 
 ## Core Guidelines
 
@@ -31,14 +37,14 @@ All three modes draw on the same **Core Guidelines** below; each topic links to 
 - Use `viewIsAppearing` (back-deployed iOS 13+) for geometry-dependent work, trait-based layout, scroll-to-item
 - `viewDidLayoutSubviews` fires multiple times — use only for lightweight layer frame adjustments
 - `viewWillAppear` is limited to transition coordinator animations and balanced notification registration
-- Always call `super` in every lifecycle override
+- Always call `super` in lifecycle overrides — except a `loadView` override that builds the view hierarchy itself, which must not call `super`
 - Child VC containment: `addChild` → `addSubview` → `didMove(toParent:)` — in that exact order
 - Verify deallocation with `deinit` logging during development
 
 ### Auto Layout — see `references/auto-layout.md`
-- Always set `translatesAutoresizingMaskIntoConstraints = false` on programmatic views
-- Use `NSLayoutConstraint.activate([])` — never individual `.isActive = true`
-- Create constraints once, toggle `isActive` or modify `.constant` — never remove and recreate
+- Always set `translatesAutoresizingMaskIntoConstraints = false` on views you position with your own constraints — not on views UIKit positions for you (a pushed or presented controller's root `view`, a cell's `contentView`)
+- Prefer `NSLayoutConstraint.activate([])` over setting `.isActive = true` one constraint at a time (one batch for the layout engine)
+- Create constraints once, then toggle `isActive` or modify `.constant` — avoid removing and recreating them
 - Never change priority from/to `.required` (1000) at runtime — use 999
 - Animate constraints: update constant → call `layoutIfNeeded()` inside animation block on superview
 - iOS 26+: use `.flushUpdates` option to simplify constraint animation
@@ -57,7 +63,7 @@ NSLayoutConstraint.activate([                              // one batch = one so
 
 ### Collection Views & Data Sources — see `references/modern-collection-views.md`, `references/cell-configuration.md`, `references/list-performance.md`
 - Use `UICollectionViewDiffableDataSource` with stable identifiers (UUID/database ID, not full model structs)
-- Use `reconfigureItems` for content updates, `reloadItems` only when cell type changes
+- Use `reconfigureItems` (iOS 15+) for content updates, `reloadItems` only when cell type changes; with observation tracking enabled (iOS 18+ opt-in, default on iOS 26), `@Observable` reads in `configurationUpdateHandler` refresh the cell without a snapshot
 - Use `applySnapshotUsingReloadData` for initial population (bypasses diffing)
 - Use `UICollectionViewCompositionalLayout` for any non-trivial layout
 - Use `UICollectionView.CellRegistration` — no string identifiers, no manual casting
@@ -97,9 +103,9 @@ dataSource.apply(snapshot, animatingDifferences: true)
 - Constraint animation: flush layout → update constant → animate `layoutIfNeeded()` on superview
 
 ### Memory Management — see `references/memory-management.md`
-- Default to `[weak self]` in all escaping closures
-- Timer: use block-based API with `[weak self]`, invalidate in `viewWillDisappear`
-- CADisplayLink: use weak proxy pattern (no block-based API available)
+- Default to `[weak self]` in escaping closures that are stored or long-lived (callbacks, observers, timers, stored handlers). It is not needed where the closure runs once and is released (`UIView.animate`, `DispatchQueue.main.async`) or where the API hands you the object (the `self: Self` parameter of a `registerForTraitChanges` handler)
+- Timer: use block-based API with `[weak self]`; start it in an appearance callback (`viewIsAppearing`) and invalidate in `viewWillDisappear`, so it restarts when the screen reappears
+- CADisplayLink: use weak proxy pattern (no block-based API available); start and invalidate it with the same appearance pairing
 - NotificationCenter: `[weak self]` in closure, remove observer in `deinit`
 - Nested closures: re-capture `[weak self]` in stored inner closures
 - Delegates: always `weak var delegate: SomeDelegate?` with `AnyObject` constraint
@@ -107,10 +113,10 @@ dataSource.apply(snapshot, animatingDifferences: true)
 
 ### Concurrency — see `references/concurrency-main-thread.md`
 - `UIViewController` is `@MainActor` — all subclass methods are implicitly main-actor
-- Store `Task` references, cancel in `viewDidDisappear` — not `deinit`
+- Store `Task` references, cancel in `viewDidDisappear` — not `deinit`; start work that should run while the screen is visible in an appearance callback, so it resumes when the screen reappears
 - Check `Task.isCancelled` before UI updates after `await`
 - `Task.detached` does NOT inherit actor isolation — explicit `MainActor.run` needed for UI
-- Never call `DispatchQueue.main.sync` from background — use `await MainActor.run`
+- Avoid `DispatchQueue.main.sync` to reach the main thread (it blocks the caller and deadlocks when already on main) — use `await MainActor.run`
 
 ### UIKit–SwiftUI Interop — see `references/uikit-swiftui-interop.md`
 - UIHostingController: full child VC containment (`addChild` → `addSubview` → `didMove`), retain as stored property
@@ -120,21 +126,29 @@ dataSource.apply(snapshot, animatingDifferences: true)
 
 ### Image Loading — see `references/image-loading.md`
 - Decoded bitmap size = width × height × 4 bytes (a 12MP photo = ~48MB RAM)
-- Downsample with ImageIO at display size — never load full bitmap and resize
-- iOS 15+: use `byPreparingThumbnail(of:)` or `prepareForDisplay()` for async decoding
+- Consider downsampling with ImageIO to the display pixel size instead of decoding the full bitmap and resizing
+- iOS 15+: consider `byPreparingThumbnail(ofSize:)` or `byPreparingForDisplay()` for async decoding
 - Cell reuse: cancel Task in `prepareForReuse`, clear image, verify identity on completion
 
 ### Keyboard & Scroll — see `references/keyboard-scroll.md`
 - Use `UIKeyboardLayoutGuide` (iOS 15+) — pin content bottom to `view.keyboardLayoutGuide.topAnchor`
-- iPad: set `followsUndockedKeyboard = true` for floating keyboards
-- Replace all manual keyboard notification handling with the layout guide
+- iPad floating/undocked keyboard: set `followsUndockedKeyboard = true` and attach the constraints with `setConstraints(_:activeWhenNearEdge:)` / `setConstraints(_:activeWhenAwayFrom:)` — a single fixed constraint misplaces content when the keyboard floats
+- Prefer the layout guide over manual keyboard notification handling; keep notifications only as the fallback below iOS 15
 
 ### Adaptive Layout & Accessibility — see `references/adaptive-appearance.md`
-- Use `registerForTraitChanges` (iOS 17+) instead of deprecated `traitCollectionDidChange`
+- Use `registerForTraitChanges` (iOS 17+) instead of deprecated `traitCollectionDidChange`; when the deployment target is below iOS 17, gate the registration with `#available` and keep `traitCollectionDidChange` as the fallback
 - Dynamic Type: `UIFont.preferredFont(forTextStyle:)` + `adjustsFontForContentSizeCategory = true`
-- Dark mode: use semantic colors (`.label`, `.systemBackground`); re-resolve CGColor on trait changes
+- Dark mode: use semantic colors (`.label`, `.systemBackground`); re-resolve CGColor on trait changes with `resolvedColor(with: traitCollection).cgColor` — outside layout/draw callbacks and trait-change handlers the current trait collection is not guaranteed
 - VoiceOver: set `accessibilityLabel`, `accessibilityTraits`, `accessibilityHint` on custom views
 - Use `UIAccessibilityCustomAction` for complex list item actions
+
+### Modern APIs (iOS 18–26) — see `references/modern-uikit-apis.md`
+- Observation tracking: opt in with `UIObservationTrackingEnabled` on iOS 18+ (on by default in iOS 26); `@Observable` properties read in `layoutSubviews`, `viewWillLayoutSubviews`, or `configurationUpdateHandler` re-run that method when they change
+- Never write to an observed property inside a tracked method — it re-triggers the same method (update storm)
+- iOS 26+: put content and styling in `updateProperties()`, keep geometry in `layoutSubviews()`
+- iOS 26+: `.flushUpdates` animation option replaces the manual `layoutIfNeeded()` steps
+- `UIScene` lifecycle: iOS 26 only logs a warning; it becomes required when building with the SDK of the release after iOS 26
+- Liquid Glass (iOS 26+): standard bars adopt it automatically; gate `UIGlassEffect` with `#available` and fall back to `UIBlurEffect`
 
 ## Quick Reference — Deprecated → Modern APIs
 | Deprecated / Legacy | Modern Replacement | Since |
@@ -147,25 +161,25 @@ dataSource.apply(snapshot, animatingDifferences: true)
 | `barTintColor` / `isTranslucent` | `UINavigationBarAppearance` (4 slots) | iOS 13 |
 | `UICollectionViewFlowLayout` (complex) | `UICollectionViewCompositionalLayout` | iOS 13 |
 | Manual `layoutIfNeeded()` in animations | `.flushUpdates` option | iOS 26 |
-| Legacy app lifecycle | `UIScene` + `SceneDelegate` | Mandatory iOS 26 |
+| Legacy app lifecycle | `UIScene` + `SceneDelegate` | iOS 13; required with the SDK after iOS 26 |
 | `ObservableObject` + manual invalidation | `@Observable` + `UIObservationTrackingEnabled` | iOS 18 |
 
 ## Review Checklist
 
-One gate per domain — the correctness items to verify (details in the matching Core Guideline above):
+One gate per domain (details in the matching Core Guideline above). Items before *Optional* are correctness gates; items after *Optional* are performance or modernization suggestions — raise them, but do not fail a review on them.
 
-- [ ] **Lifecycle** — no geometry in `viewDidLoad` (use `viewIsAppearing`); every override calls `super`; child VC = `addChild → addSubview → didMove`; `deinit` confirms dealloc
-- [ ] **Auto Layout** — `translatesAutoresizingMaskIntoConstraints = false`; `NSLayoutConstraint.activate([])`; no churn (toggle `isActive`/`.constant`); no `setNeedsLayout()` inside `layoutSubviews` (infinite loop)
-- [ ] **Collection views** — diffable + stable identifiers; `reconfigureItems` not `reloadItems`; no duplicate snapshot IDs (`BUG_IN_CLIENT` crash); `CellRegistration` not string dequeue
+- [ ] **Lifecycle** — no geometry in `viewDidLoad` (use `viewIsAppearing`); overrides call `super` (except a `loadView` that builds the view); child VC = `addChild → addSubview → didMove`; `deinit` confirms dealloc
+- [ ] **Auto Layout** — `translatesAutoresizingMaskIntoConstraints = false` on views you constrain; no priority change to/from `.required` at runtime; no `setNeedsLayout()` inside `layoutSubviews` (infinite loop). *Optional:* batch with `NSLayoutConstraint.activate([])`; no churn (toggle `isActive`/`.constant`)
+- [ ] **Collection views** — diffable + stable identifiers; no duplicate snapshot IDs (`BUG_IN_CLIENT` crash); registration not created inside the cell provider. *Optional:* `reconfigureItems` instead of `reloadItems`; `CellRegistration` instead of string dequeue
 - [ ] **Navigation** — all 4 appearance slots; on `navigationItem` not `navigationBar`; concurrent-transition guard
 - [ ] **Animation** — API fits use case; constraint animation flush → update → animate; `CAAnimation` sets model value first
-- [ ] **Memory** — `[weak self]` in escaping closures; `Task`s cancelled in `viewDidDisappear`; delegates `weak`; no strong-self recapture in nested closures
-- [ ] **Concurrency** — `Task.isCancelled` checked after `await`; no `DispatchQueue.main.sync` from background; no redundant `@MainActor` on VC subclasses
-- [ ] **Images** — downsampled to display size; cell load cancels in `prepareForReuse` + verifies identity; `NSCache` sized by decoded bytes
+- [ ] **Memory** — `[weak self]` in stored or long-lived escaping closures; `Task`s cancelled in `viewDidDisappear`; timers/display links/tasks started in an appearance callback when stopped on disappearance; delegates `weak`; no strong-self recapture in nested closures
+- [ ] **Concurrency** — `Task.isCancelled` checked after `await`; no `DispatchQueue.main.sync` hop to main. *Optional:* no redundant `@MainActor` on VC subclasses
+- [ ] **Images** — cell load cancels in `prepareForReuse` + verifies identity. *Optional:* downsampled to display size; `NSCache` cost by decoded bytes
 - [ ] **Interop** — `UIHostingController` retained + full containment; `updateUIView` guards update loops
-- [ ] **Keyboard** — `UIKeyboardLayoutGuide`, not notifications
-- [ ] **Adaptive/A11y** — `registerForTraitChanges`; Dynamic Type; CGColor re-resolved on trait change; `accessibilityLabel`/`Traits` on custom views
-- [ ] **iOS 26+** — `#available` guards with fallbacks; `UIScene` lifecycle; consider `UIObservationTrackingEnabled`
+- [ ] **Keyboard** — content follows the keyboard correctly; undocked tracking uses `setConstraints(_:activeWhen…)`. *Optional:* `UIKeyboardLayoutGuide` instead of notifications (iOS 15+)
+- [ ] **Adaptive/A11y** — trait changes handled (`registerForTraitChanges` on iOS 17+, `traitCollectionDidChange` fallback below); Dynamic Type; CGColor re-resolved with `resolvedColor(with:)`; `accessibilityLabel`/`Traits` on custom views
+- [ ] **Modern APIs** — every API newer than the deployment target is behind `#available` with a fallback; no writes to observed properties inside tracked methods. *Optional:* `UIScene` lifecycle; `UIObservationTrackingEnabled`
 
 ## References
 - `references/view-controller-lifecycle.md` — Lifecycle ordering, viewIsAppearing, child VC containment

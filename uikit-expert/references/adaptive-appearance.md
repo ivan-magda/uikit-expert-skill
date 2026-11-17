@@ -42,15 +42,19 @@ registerForTraitChanges(
 )
 ```
 
-❌ **Incorrect — using `[weak self]` and the deprecated callback:**
+⚠️ **Unnecessary — `[weak self]` in the handler** (harmless, but the parameter already gives you the object):
 
 ```swift
-// ❌ Don't use [weak self] — the first parameter IS the object, not a capture
+// The first parameter IS the object, so there is nothing to capture
 registerForTraitChanges([UITraitUserInterfaceStyle.self]) { [weak self] (vc: Self, _) in
-    self?.updateLayout()   // Unnecessary indirection
+    self?.updateLayout()   // Works, but use the parameter instead
 }
+```
 
-// ❌ Deprecated in iOS 17 — fires for ALL trait changes, wasting work
+❌ **Deprecated when the deployment target is iOS 17 or later:**
+
+```swift
+// Deprecated in iOS 17 — fires for ALL trait changes, wasting work
 override func traitCollectionDidChange(_ prev: UITraitCollection?) {
     super.traitCollectionDidChange(prev)
     if prev?.horizontalSizeClass != traitCollection.horizontalSizeClass {
@@ -58,6 +62,30 @@ override func traitCollectionDidChange(_ prev: UITraitCollection?) {
     }
 }
 ```
+
+✅ **Deployment target below iOS 17 — gate the registration and keep the callback as the fallback:**
+
+```swift
+override func viewDidLoad() {
+    super.viewDidLoad()
+    if #available(iOS 17, *) {
+        registerForTraitChanges([UITraitHorizontalSizeClass.self]) {
+            (self: Self, _: UITraitCollection) in
+            self.updateLayout()
+        }
+    }
+}
+
+override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+    super.traitCollectionDidChange(previousTraitCollection)
+    if #available(iOS 17, *) { return }   // Handled by the registration above
+    if previousTraitCollection?.horizontalSizeClass != traitCollection.horizontalSizeClass {
+        updateLayout()
+    }
+}
+```
+
+`registerForTraitChanges` does not exist before iOS 17, so calling it unguarded does not compile for an older deployment target. On those targets `traitCollectionDidChange` is not deprecated and is the correct API.
 
 ### Why `[weak self]` is not needed
 
@@ -376,7 +404,6 @@ override func viewDidLoad() {
 override func viewDidLoad() {
     super.viewDidLoad()
     cardView.layer.borderWidth = 1
-    applyLayerColors()
 
     registerForTraitChanges([UITraitUserInterfaceStyle.self]) {
         (self: Self, _) in
@@ -390,12 +417,15 @@ override func viewIsAppearing(_ animated: Bool) {
 }
 
 private func applyLayerColors() {
-    cardView.layer.borderColor = UIColor.separator.cgColor
-    cardView.layer.shadowColor = UIColor.label.cgColor
+    // Resolve against this view controller's traits explicitly. UIKit only guarantees
+    // `UITraitCollection.current` inside layout/draw callbacks and trait-change handlers —
+    // not in viewDidLoad or viewIsAppearing — so a bare `.cgColor` there can pick the wrong appearance.
+    cardView.layer.borderColor = UIColor.separator.resolvedColor(with: traitCollection).cgColor
+    cardView.layer.shadowColor = UIColor.label.resolvedColor(with: traitCollection).cgColor
 }
 ```
 
-For views, the `layoutSubviews()` approach is equally valid — it fires whenever traits change because the system invalidates layout:
+For views, the `layoutSubviews()` approach is equally valid — it fires whenever traits change because the system invalidates layout, and UIKit sets the current trait collection before calling it, so a bare `.cgColor` is safe there:
 
 ```swift
 override func layoutSubviews() {
@@ -681,14 +711,14 @@ The iOS 17 trait system is a genuine leap: explicit trait registration eliminate
 
 ## Summary Checklist
 
-- [ ] `registerForTraitChanges` (iOS 17+) used instead of deprecated `traitCollectionDidChange`
+- [ ] `registerForTraitChanges` (iOS 17+) used instead of deprecated `traitCollectionDidChange`; below an iOS 17 deployment target it is gated with `#available` and `traitCollectionDidChange` is the fallback
 - [ ] Trait handler uses `self: Self` closure pattern (framework manages lifecycle, no `[weak self]` needed)
 - [ ] Initial state set in `viewIsAppearing` (handler is NOT called on registration)
 - [ ] Dynamic Type: `UIFont.preferredFont(forTextStyle:)` or `UIFontMetrics` for custom fonts
 - [ ] `adjustsFontForContentSizeCategory = true` set on labels/text views for live text-size changes
 - [ ] `numberOfLines = 0` set on labels to allow wrapping at larger text sizes
 - [ ] Dark mode: semantic colors (`.label`, `.systemBackground`) used — not hardcoded colors
-- [ ] `layer.borderColor` / `layer.shadowColor` (CGColor) re-resolved on trait changes
+- [ ] `layer.borderColor` / `layer.shadowColor` (CGColor) re-resolved on trait changes, using `resolvedColor(with: traitCollection)` outside layout/draw callbacks
 - [ ] Custom views set `isAccessibilityElement`, `accessibilityLabel`, `accessibilityTraits`
 - [ ] Complex list items use `UIAccessibilityCustomAction` for VoiceOver-accessible actions
 - [ ] Accessibility notifications posted: `.screenChanged`, `.layoutChanged`, `.announcement` as needed

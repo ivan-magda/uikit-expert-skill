@@ -29,12 +29,12 @@
     },
     {
       "name": "registerForTraitChanges used",
-      "description": "Trait changes are registered via registerForTraitChanges(_:handler:) or registerForTraitChanges(_:target:action:) — the file does NOT contain traitCollectionDidChange",
+      "description": "Trait changes are registered via registerForTraitChanges(_:handler:) or registerForTraitChanges(_:target:action:). If the implementation supports a deployment target below iOS 17, the registration is gated with #available(iOS 17, *)",
       "max_score": 12
     },
     {
-      "name": "No traitCollectionDidChange override",
-      "description": "The file does NOT override traitCollectionDidChange — only the modern registerForTraitChanges API is present",
+      "name": "traitCollectionDidChange only as a gated fallback",
+      "description": "The file either does not override traitCollectionDidChange, or overrides it only as the fallback for deployment targets below iOS 17 alongside an #available-gated registerForTraitChanges — it is NOT the only trait-change mechanism",
       "max_score": 8
     },
     {

@@ -1,5 +1,5 @@
 {
-  "context": "Tests whether the agent correctly manages Swift Concurrency Task lifecycle inside a UIViewController: storing Task references, cancelling in viewDidDisappear, checking Task.isCancelled before UI updates, using Task {} (not Task.detached), avoiding redundant @MainActor annotations on UIViewController subclass methods, and gating any iOS 26+ APIs with #available.",
+  "context": "Tests whether the agent correctly manages Swift Concurrency Task lifecycle inside a UIViewController: storing Task references, cancelling when the view disappears, checking Task.isCancelled before UI updates, using Task {} (not Task.detached), avoiding redundant @MainActor annotations on UIViewController subclass methods, and gating any iOS 26+ APIs with #available.",
   "type": "weighted_checklist",
   "checklist": [
     {
@@ -8,8 +8,8 @@
       "max_score": 15
     },
     {
-      "name": "Cancel in viewDidDisappear",
-      "description": "The stored Task is cancelled inside viewDidDisappear(_:), not inside deinit",
+      "name": "Cancel when the view disappears",
+      "description": "The stored Task is cancelled inside viewDidDisappear(_:) or viewWillDisappear(_:) — NOT only inside deinit",
       "max_score": 15
     },
     {

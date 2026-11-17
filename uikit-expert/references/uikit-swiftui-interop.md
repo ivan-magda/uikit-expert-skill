@@ -1,6 +1,6 @@
 # UIKit–SwiftUI interoperability: the definitive technical reference
 
-**The bridge between UIKit and SwiftUI is now mature but filled with subtle traps.** Since iOS 16, Apple has delivered `sizingOptions`, `UIHostingConfiguration`, and `sizeThatFits(_:)` for representables. iOS 17 added `@Observable` and `UITraitBridgedEnvironmentKey` for bidirectional state flow. iOS 18 brought automatic trait tracking and animation interop. And iOS 26 (beta) introduces native `@Observable` tracking in UIKit itself. This reference covers every major interop pattern with correct and incorrect code examples, spanning iOS 13 through iOS 26.
+**The bridge between UIKit and SwiftUI is now mature but filled with subtle traps.** Since iOS 16, Apple has delivered `sizingOptions`, `UIHostingConfiguration`, and `sizeThatFits(_:)` for representables. iOS 17 added `@Observable` and `UITraitBridgedEnvironmentKey` for bidirectional state flow. iOS 18 brought automatic trait tracking and animation interop. And iOS 26 introduces native `@Observable` tracking in UIKit itself. This reference covers every major interop pattern with correct and incorrect code examples, spanning iOS 13 through iOS 26.
 
 ---
 
@@ -550,7 +550,7 @@ struct ItemRow: View, Equatable {
 
 **iOS 18 (WWDC 2024)** added SwiftUI `Animation` types usable with `UIView.animate`, `UIGestureRecognizerRepresentable` for cross-framework gesture coordination, **automatic trait tracking** in layout/draw methods, and `UIUpdateLink` replacing `CADisplayLink`.
 
-**iOS 26 (WWDC 2025, beta)** is the largest interop leap yet. UIKit now **automatically tracks `@Observable` property access** in `viewWillLayoutSubviews()`, `layoutSubviews()`, `drawRect()`, and the new `updateProperties()` — no manual `setNeedsLayout()` required. The `updateProperties()` lifecycle method runs before layout for non-geometry property updates. `.flushUpdates` in `UIView.animate` eliminates manual `layoutIfNeeded()` calls. `UIHostingSceneDelegate` lets UIKit apps host entire SwiftUI scenes. Observable auto-tracking is back-deployable to iOS 18 via the `UIObservationTrackingEnabled` Info.plist key.
+**iOS 26 (WWDC 2025)** is the largest interop leap yet. UIKit now **automatically tracks `@Observable` property access** in `viewWillLayoutSubviews()`, `layoutSubviews()`, `drawRect()`, and the new `updateProperties()` — no manual `setNeedsLayout()` required. The `updateProperties()` lifecycle method runs before layout for non-geometry property updates. `.flushUpdates` in `UIView.animate` eliminates manual `layoutIfNeeded()` calls. `UIHostingSceneDelegate` lets UIKit apps host entire SwiftUI scenes. Observable auto-tracking is back-deployable to iOS 18 via the `UIObservationTrackingEnabled` Info.plist key.
 
 ## Conclusion
 

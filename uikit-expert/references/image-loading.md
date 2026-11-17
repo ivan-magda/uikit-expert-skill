@@ -51,9 +51,12 @@ let thumbnail = renderer.image { _ in
 import ImageIO
 import UIKit
 
+/// - Parameter scale: The display scale of the view that will show the image —
+///   pass `traitCollection.displayScale` (`UIScreen.main` is deprecated in iOS 26,
+///   and as a default argument it is main-actor-isolated, which Swift 6 rejects here).
 func downsample(imageAt url: URL,
                 to pointSize: CGSize,
-                scale: CGFloat = UIScreen.main.scale) -> UIImage? {
+                scale: CGFloat) -> UIImage? {
 
     // 1. Create image source — kCGImageSourceShouldCache: false prevents
     //    decoding the full image just to read metadata
@@ -134,7 +137,7 @@ image.prepareThumbnail(of: CGSize(width: 200, height: 200)) { thumb in
 let thumb = await image.byPreparingThumbnail(ofSize: CGSize(width: 200, height: 200))
 ```
 
-The `size` parameter is in **points**. The system multiplies by the screen scale internally. All methods return `nil` if the image is backed by `CIImage` rather than `CGImage`.
+Apple's documentation describes `size` only as "the desired size of the thumbnail". The returned thumbnail keeps the **source image's `scale`**, so `size` is measured in that image's points — the screen scale is not applied for you. An image decoded from `Data` or a file has scale 1, so pass the pixel size you need (display point size × `traitCollection.displayScale`); passing the bare point size yields an under-resolved thumbnail on 2x/3x displays. All methods return `nil` if the image is backed by `CIImage` rather than `CGImage`.
 
 ### When to pick which
 
@@ -361,7 +364,7 @@ actor ImageLoader {
     static let shared = ImageLoader()
 
     private let cache = NSCache<NSString, UIImage>()
-    private var inFlight: [URL: Task<UIImage, Error>] = [:]
+    private var inFlight: [String: Task<UIImage, Error>] = [:]
 
     init() {
         cache.countLimit = 150
@@ -374,17 +377,20 @@ actor ImageLoader {
     /// Load an image from cache, or download and optionally downsample it.
     /// - Parameters:
     ///   - url: Remote image URL
-    ///   - targetSize: Point size for downsampling. Pass nil for full-size decode.
-    func load(from url: URL, targetSize: CGSize? = nil) async throws -> UIImage {
-        let key = url.absoluteString as NSString
+    ///   - maxPixelSize: Longest edge in pixels (display point size × display scale).
+    ///     Pass nil for a full-size decode.
+    func load(from url: URL, maxPixelSize: CGFloat? = nil) async throws -> UIImage {
+        // The decoded result depends on the requested size, so the size is part of the key.
+        // Keying by URL alone would hand a cached thumbnail to a later full-size request.
+        let key = Self.key(for: url, maxPixelSize: maxPixelSize)
 
         // 1. Memory cache hit — instant return
-        if let cached = cache.object(forKey: key) {
+        if let cached = cache.object(forKey: key as NSString) {
             return cached
         }
 
-        // 2. De-duplicate: reuse an in-flight task for the same URL
-        if let existing = inFlight[url] {
+        // 2. De-duplicate: reuse an in-flight task for the same URL and size
+        if let existing = inFlight[key] {
             return try await existing.value
         }
 
@@ -393,38 +399,39 @@ actor ImageLoader {
             let (data, _) = try await URLSession.shared.data(from: url)
             try Task.checkCancellation()
 
-            let image: UIImage
-            if let size = targetSize {
-                image = Self.downsample(data: data, to: size)
-                    ?? UIImage(data: data)!
-            } else if let full = UIImage(data: data) {
-                // Decode on this background thread to avoid main-thread hitch
-                image = await full.byPreparingForDisplay() ?? full
-            } else {
+            if let maxPixelSize {
+                guard let thumbnail = Self.downsample(data: data, maxPixelSize: maxPixelSize) else {
+                    throw URLError(.cannotDecodeContentData)
+                }
+                return thumbnail
+            }
+            guard let full = UIImage(data: data) else {
                 throw URLError(.cannotDecodeContentData)
             }
-            return image
+            // Decode on this background thread to avoid main-thread hitch
+            return await full.byPreparingForDisplay() ?? full
         }
 
-        // Store BEFORE await — other callers see .inFlight and reuse this task
-        inFlight[url] = task
+        // Store BEFORE await — other callers find the in-flight task and reuse it
+        inFlight[key] = task
 
         do {
             let image = try await task.value
             let cost = image.cgImage.map { $0.bytesPerRow * $0.height } ?? 0
-            cache.setObject(image, forKey: key, cost: cost)
-            inFlight[url] = nil
+            cache.setObject(image, forKey: key as NSString, cost: cost)
+            clearInFlight(task, for: key)
             return image
         } catch {
-            inFlight[url] = nil
+            clearInFlight(task, for: key)
             throw error
         }
     }
 
-    /// Cancel a pending load for a specific URL.
-    func cancel(for url: URL) {
-        inFlight[url]?.cancel()
-        inFlight[url] = nil
+    /// Cancel a pending load for a specific URL and size.
+    func cancel(for url: URL, maxPixelSize: CGFloat? = nil) {
+        let key = Self.key(for: url, maxPixelSize: maxPixelSize)
+        inFlight[key]?.cancel()
+        inFlight[key] = nil
     }
 
     /// Evict all cached images (call on memory warning).
@@ -432,23 +439,30 @@ actor ImageLoader {
         cache.removeAllObjects()
     }
 
+    // MARK: - Private
+
+    private static func key(for url: URL, maxPixelSize: CGFloat?) -> String {
+        "\(url.absoluteString)#\(maxPixelSize.map { String(Int($0.rounded())) } ?? "full")"
+    }
+
+    /// Remove the handle only if it is still this task's. After `cancel(for:)`, a newer
+    /// load may already be stored under the same key — an unconditional `= nil` would erase it.
+    private func clearInFlight(_ task: Task<UIImage, Error>, for key: String) {
+        if inFlight[key] == task { inFlight[key] = nil }
+    }
+
     // MARK: - ImageIO Downsampling (nonisolated — pure function, no shared state)
 
-    nonisolated static func downsample(
-        data: Data,
-        to pointSize: CGSize,
-        scale: CGFloat = UIScreen.main.scale
-    ) -> UIImage? {
+    nonisolated static func downsample(data: Data, maxPixelSize: CGFloat) -> UIImage? {
         let sourceOpts = [kCGImageSourceShouldCache: false] as CFDictionary
         guard let source = CGImageSourceCreateWithData(data as CFData, sourceOpts) else {
             return nil
         }
-        let maxDimension = max(pointSize.width, pointSize.height) * scale
         let thumbOpts: [CFString: Any] = [
             kCGImageSourceCreateThumbnailFromImageAlways: true,
             kCGImageSourceShouldCacheImmediately: true,
             kCGImageSourceCreateThumbnailWithTransform: true,
-            kCGImageSourceThumbnailMaxPixelSize: maxDimension
+            kCGImageSourceThumbnailMaxPixelSize: maxPixelSize
         ]
         guard let cg = CGImageSourceCreateThumbnailAtIndex(source, 0, thumbOpts as CFDictionary) else {
             return nil
@@ -471,10 +485,14 @@ class AsyncImageCell: UICollectionViewCell {
         imageView.image = nil
         loadTask?.cancel()
 
+        // Points × display scale = pixels. Read the scale from the cell's traits
+        // (UIScreen.main is deprecated in iOS 26).
+        let maxPixelSize = max(targetSize.width, targetSize.height) * traitCollection.displayScale
+
         loadTask = Task { [weak self] in
             do {
                 let image = try await ImageLoader.shared.load(
-                    from: url, targetSize: targetSize
+                    from: url, maxPixelSize: maxPixelSize
                 )
                 guard !Task.isCancelled, self?.currentURL == url else { return }
                 self?.imageView.image = image
@@ -495,7 +513,9 @@ class AsyncImageCell: UICollectionViewCell {
 }
 ```
 
-The **deduplication trick** is the most subtle part of the actor design. When `load(from:)` stores the `Task` in `inFlight[url]` before awaiting `task.value`, any concurrent caller for the same URL hits the `if let existing = inFlight[url]` branch and awaits the same task. This eliminates duplicate network requests when the same image URL appears in multiple visible cells — a common scenario with user avatars.
+The **deduplication trick** is the most subtle part of the actor design. When `load(from:)` stores the `Task` in `inFlight[key]` before awaiting `task.value`, any concurrent caller for the same URL and size hits the `if let existing = inFlight[key]` branch and awaits the same task. This eliminates duplicate network requests when the same image URL appears in multiple visible cells — a common scenario with user avatars.
+
+Two details keep the shared state correct. The key combines the URL **and the requested pixel size**, because the decoded result differs per size — a URL-only key would return a cached thumbnail to a later full-size request. And `clearInFlight` removes a handle only if it still belongs to the finishing task: after `cancel(for:)`, a newer load may already be stored under the same key, and an unconditional `inFlight[key] = nil` from the cancelled task would erase it.
 
 The `downsample` method is marked `nonisolated` because it's a pure function with no shared state — it can run on any thread without actor hop overhead.
 
@@ -518,7 +538,8 @@ The ImageLoader actor pattern presented here — combining NSCache, ImageIO down
 
 - [ ] Images downsampled to display size — never loaded at full resolution (12MP = ~48MB decoded)
 - [ ] Downsampling uses ImageIO (`CGImageSourceCreateThumbnailAtIndex`) for maximum memory efficiency
-- [ ] iOS 15+: `byPreparingThumbnail(of:)` or `prepareForDisplay()` used for async decoding when appropriate
+- [ ] iOS 15+: `byPreparingThumbnail(ofSize:)` or `byPreparingForDisplay()` used for async decoding when appropriate; thumbnail size accounts for display scale
+- [ ] Decoded-image cache keys include the requested size, not only the URL
 - [ ] Cell image loading follows cancel/clear/verify pattern in `prepareForReuse`
 - [ ] In-flight Task cancelled in `prepareForReuse`; `imageView.image` cleared immediately
 - [ ] Completion verifies cell identity (URL/ID match) before applying image

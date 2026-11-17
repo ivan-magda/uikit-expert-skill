@@ -263,25 +263,26 @@ Apple Technical Note TN3187 (published May 2025, revised June 2025) outlines the
 Liquid Glass is iOS 26's defining design element — a translucent, specular material that floats above content for interactive elements. Standard UIKit controls (tab bars, navigation bars, alerts) adopt it automatically when built with Xcode 26. Custom glass effects use `UIGlassEffect` with `UIVisualEffectView`.
 
 ```swift
+let effectView = UIVisualEffectView()   // Declared outside the check so both branches can use it
+
 if #available(iOS 26, *) {
     let glassEffect = UIGlassEffect()
     glassEffect.isInteractive = true  // Scales and bounces on tap
     glassEffect.tintColor = .systemBlue
-
-    let effectView = UIVisualEffectView(effect: glassEffect)
-    effectView.frame = CGRect(x: 50, y: 100, width: 300, height: 200)
-
-    let label = UILabel(frame: effectView.bounds)
-    label.text = "Glass Surface"
-    label.textAlignment = .center
-    effectView.contentView.addSubview(label)
-
-    view.addSubview(effectView)
+    effectView.effect = glassEffect
 } else {
     // Fallback for older iOS
-    let blurEffect = UIBlurEffect(style: .systemMaterial)
-    effectView.effect = blurEffect
+    effectView.effect = UIBlurEffect(style: .systemMaterial)
 }
+
+effectView.frame = CGRect(x: 50, y: 100, width: 300, height: 200)
+
+let label = UILabel(frame: effectView.bounds)
+label.text = "Glass Surface"
+label.textAlignment = .center
+effectView.contentView.addSubview(label)
+
+view.addSubview(effectView)
 ```
 
 For grouping multiple glass elements that merge when proximate, use `UIGlassContainerEffect`:
@@ -376,7 +377,7 @@ let token = NotificationCenter.default.addObserver(
 }
 ```
 
-`MainActorMessage` guarantees main-thread execution; `AsyncMessage` is `Sendable` for cross-concurrency use. Both protocols bridge with legacy `Notification` by implementing `makeMessage(_:)` and `makeNotification(_:object:)`, so old-style posts are received by new-style observers and vice versa. Apple already ships typed messages for system notifications — for example, `UIScreen.keyboardWillShow` replaces `UIResponder.keyboardWillShowNotification`.
+`MainActorMessage` guarantees main-thread execution; `AsyncMessage` is `Sendable` for cross-concurrency use. Both protocols bridge with legacy `Notification` by implementing `makeMessage(_:)` and `makeNotification(_:object:)`, so old-style posts are received by new-style observers and vice versa. Apple already ships typed messages for system notifications — for example, `UIResponder.KeyboardWillShowMessage`, observed with `addObserver(of: UIScreen.self, for: .keyboardWillShow)`, replaces `UIResponder.keyboardWillShowNotification`.
 
 ---
 

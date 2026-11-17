@@ -353,17 +353,15 @@ animator.startAnimation()
 ```
 
 ```swift
-// ✅ Keyboard animation with .flushUpdates (WWDC 2025 example)
-NotificationCenter.default.addObserver(
-    forName: UIResponder.keyboardWillShowNotification,
-    object: nil,
-    queue: .main
-) { notification in
-    let endFrame = (notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey]
-        as? CGRect) ?? .zero
-    let duration = (notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey]
-        as? Double) ?? 0.25
-    UIView.animate(withDuration: duration, options: .flushUpdates) {
+// ✅ Keyboard animation with .flushUpdates (iOS 26+, typed keyboard message)
+// Keep the token and capture self weakly — a discarded token with a strong
+// `self` leaves the observer registered and the view controller alive.
+keyboardToken = NotificationCenter.default.addObserver(
+    of: UIScreen.self, for: .keyboardWillShow
+) { [weak self] message in
+    guard let self else { return }
+    let endFrame = view.convert(message.endFrame, from: message.screen.coordinateSpace)
+    UIView.animate(withDuration: message.animationDuration, delay: 0, options: .flushUpdates) {
         self.bottomConstraint.constant = self.view.bounds.maxY - endFrame.minY
     }
 }

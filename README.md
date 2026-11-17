@@ -19,7 +19,7 @@ An AI agent skill for writing correct, performant, modern UIKit code in Swift.
 
 AI coding assistants tend to produce UIKit code with the same recurring mistakes: geometry work in `viewDidLoad` instead of `viewIsAppearing`, missing `[weak self]` in escaping closures, deprecated `cell.textLabel` instead of `UIContentConfiguration`, and navigation bar appearance set on the wrong object. This skill gives an agent the facts it needs to catch and fix those mistakes.
 
-It ships in the Agent Skills format, so it works with any assistant that reads `SKILL.md` or `AGENTS.md`, including Claude Code, Cursor, Windsurf, and Codex. The entry point, `SKILL.md`, routes the agent through a decision tree (review, improve, or implement) and points it at the matching reference file for the task at hand.
+It ships in the Agent Skills format, so it works with any assistant that reads `SKILL.md` or `AGENTS.md`, including Claude Code, Cursor, Windsurf, and Codex. The entry point, `SKILL.md`, routes the agent through one of three workflows (review, improve, or implement) and points it at the matching reference file for the task at hand.
 
 ## Philosophy
 
@@ -118,7 +118,7 @@ Once the skill is installed, ask your agent to use it for any UIKit task. For ex
 
 > Use the uikit-expert skill to review the current UIKit code for lifecycle, memory management, and performance issues.
 
-The agent reads `SKILL.md`, picks the matching branch of the decision tree, and pulls in the relevant reference file. To confirm it loaded, check that the agent cites the workflow and checklists from `SKILL.md` and jumps into a specific reference file for your task.
+The agent reads `SKILL.md`, picks the matching workflow, and pulls in the relevant reference file. To confirm it loaded, check that the agent cites the workflow and checklists from `SKILL.md` and jumps into a specific reference file for your task.
 
 ## Project Structure
 
@@ -129,7 +129,7 @@ uikit-expert-skill/
 │   └── marketplace.json             # Claude Code marketplace catalog
 ├── AGENTS.md                        # Meta-rules for AI agents authoring the skill
 └── uikit-expert/
-    ├── SKILL.md                     # Decision tree router (entry point)
+    ├── SKILL.md                     # Workflow router (entry point)
     └── references/
         ├── view-controller-lifecycle.md
         ├── auto-layout.md

@@ -82,7 +82,9 @@ final class ImagePrefetchController<ItemID: Hashable & Sendable> {
                     tasks[item.id] = nil          // Clean up handle
                     return prepared
                 } catch {
-                    tasks[item.id] = nil
+                    // A cancelled task's handle was already removed by cancelPrefetching.
+                    // Clearing it here could erase a newer task stored under the same ID.
+                    if !Task.isCancelled { tasks[item.id] = nil }
                     return nil
                 }
             }
@@ -98,8 +100,11 @@ final class ImagePrefetchController<ItemID: Hashable & Sendable> {
 
     func cachedImage(for id: ItemID) -> UIImage? { cache[id] }
 
-    func image(for id: ItemID) async -> UIImage? {
+    /// Returns the cached image, joins an in-flight prefetch, or starts the load on demand.
+    /// Prefetch is not called for every cell, so the cell path must be able to start the work.
+    func image(for id: ItemID, url: URL) async -> UIImage? {
         if let cached = cache[id] { return cached }
+        if tasks[id] == nil { startPrefetching(for: [(id: id, url: url)]) }
         return await tasks[id]?.value
     }
 }
@@ -185,7 +190,7 @@ final class ImageCell: UICollectionViewCell {
 
         // Slow path: async load with identity verification
         loadTask = Task { [weak self] in
-            let image = await prefetcher.image(for: item.id)
+            let image = await prefetcher.image(for: item.id, url: item.imageURL)
             // (c) Verify cell still represents the same item
             guard self?.representedID == item.id else { return }
             self?.imageView.image = image

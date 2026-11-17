@@ -1,6 +1,6 @@
 # UIKit modern cell configuration: the definitive Swift guide
 
-Apple's content and background configuration system, introduced in iOS 14 and refined through iOS 18, is now the **only recommended way** to style cells in UICollectionView and UITableView. The legacy `textLabel`, `detailTextLabel`, and `imageView` properties are formally deprecated. This guide covers every configuration API in depth — from factory methods and state handling to custom configurations and reactive `@Observable` updates — with correct and incorrect code patterns throughout.
+Apple's content and background configuration system, introduced in iOS 14 and refined through iOS 18, is now the **only recommended way** to style cells in UICollectionView and UITableView. The legacy `textLabel`, `detailTextLabel`, and `imageView` properties are marked deprecated in Apple's documentation. This guide covers every configuration API in depth — from factory methods and state handling to custom configurations and reactive `@Observable` updates — with correct and incorrect code patterns throughout.
 
 The configuration system revolves around lightweight **value-type structs** that describe appearance and content, then get applied to cells in a single assignment. This design eliminates entire classes of state bugs common with imperative cell subclassing and enables powerful state-driven styling with minimal code.
 
@@ -17,8 +17,8 @@ The configuration system revolves around lightweight **value-type structs** that
 | `.cell()` | Image &#124; Primary text | `UITableViewCell.CellStyle.default` |
 | `.subtitleCell()` | Image &#124; Primary text / Secondary text (stacked) | `.subtitle` |
 | `.valueCell()` | Image &#124; Primary text … Secondary text (side-by-side) | `.value1` |
-| `.sidebarCell()` | Sidebar-styled cell with prominent icon | iPadOS sidebar |
-| `.sidebarSubtitleCell()` | Sidebar cell with subtitle | iPadOS sidebar |
+| `.sidebarCell()` | Sidebar-styled cell with prominent icon. **Deprecated in iOS 18** — use `.cell()` | iPadOS sidebar |
+| `.sidebarSubtitleCell()` | Sidebar cell with subtitle. **Deprecated in iOS 18** — use `.subtitleCell()` | iPadOS sidebar |
 | `.accompaniedSidebarCell()` | Accompanied sidebar (split view) | — |
 | `.accompaniedSidebarSubtitleCell()` | Accompanied sidebar with subtitle | — |
 
@@ -26,9 +26,9 @@ The configuration system revolves around lightweight **value-type structs** that
 
 | Factory Method | Since | Notes |
 |---|---|---|
-| `.plainHeader()` / `.plainFooter()` | iOS 14 | Plain list style |
-| `.groupedHeader()` / `.groupedFooter()` | iOS 14 | Grouped list style |
-| `.sidebarHeader()` | iOS 14 | Sidebar list style |
+| `.plainHeader()` / `.plainFooter()` | iOS 14 | Plain list style. **Deprecated in iOS 18** — use `.header()` / `.footer()` |
+| `.groupedHeader()` / `.groupedFooter()` | iOS 14 | Grouped list style. **Deprecated in iOS 18** — use `.header()` / `.footer()` |
+| `.sidebarHeader()` | iOS 14 | Sidebar list style. **Deprecated in iOS 18** — use `.header()` |
 | `.prominentInsetGroupedHeader()` | iOS 15 | Larger, bolder header for inset grouped |
 | `.extraProminentInsetGroupedHeader()` | iOS 15 | Even more prominent |
 | **`.header()`** / **`.footer()`** | **iOS 18** | Style-agnostic; auto-adapts via `UIListEnvironment` trait |
@@ -77,7 +77,7 @@ cell.contentConfiguration = content
 ❌ **Incorrect — using deprecated properties:**
 
 ```swift
-// ❌ Deprecated since iOS 14; do NOT use
+// ❌ Legacy — marked deprecated in Apple's documentation; use a content configuration
 cell.textLabel?.text = "Documents"
 cell.detailTextLabel?.text = "23 items"
 cell.imageView?.image = UIImage(systemName: "folder.fill")
@@ -96,9 +96,9 @@ Key `TextProperties` include `font`, `color`, `numberOfLines`, `lineBreakMode`, 
 
 | Factory Method | Since | Notes |
 |---|---|---|
-| `.listPlainCell()` | iOS 14 | Plain list cell background |
-| `.listGroupedCell()` | iOS 14 | Grouped list cell (rounded corners in inset grouped) |
-| `.listSidebarCell()` | iOS 14 | Sidebar cell background |
+| `.listPlainCell()` | iOS 14 | Plain list cell background. **Deprecated in iOS 18** — use `.listCell()` |
+| `.listGroupedCell()` | iOS 14 | Grouped list cell (rounded corners in inset grouped). **Deprecated in iOS 18** — use `.listCell()` |
+| `.listSidebarCell()` | iOS 14 | Sidebar cell background. **Deprecated in iOS 18** — use `.listCell()` |
 | `.listAccompaniedSidebarCell()` | iOS 14 | Accompanied sidebar cell |
 | `.listPlainHeaderFooter()` | iOS 14 | **Deprecated in iOS 18** |
 | `.listGroupedHeaderFooter()` | iOS 14 | **Deprecated in iOS 18** |
@@ -108,12 +108,14 @@ Key `TextProperties` include `font`, `color`, `numberOfLines`, `lineBreakMode`, 
 | **`.listHeader()`** | **iOS 18** | Replaces deprecated header methods |
 | **`.listFooter()`** | **iOS 18** | Replaces deprecated footer methods |
 
+The examples below use `.listCell()` (iOS 18+). With a deployment target of iOS 14–17, use `.listGroupedCell()` / `.listPlainCell()` instead, or gate `.listCell()` with `#available(iOS 18, *)` — the style-specific factories still work there and only produce deprecation warnings once the target reaches iOS 18.
+
 ### Customizing backgrounds per state
 
 ✅ **Correct — background configuration with custom fill, stroke, and corner radius:**
 
 ```swift
-var background = UIBackgroundConfiguration.listGroupedCell()
+var background = UIBackgroundConfiguration.listCell()
 background.cornerRadius = 12
 background.backgroundColor = .secondarySystemGroupedBackground
 background.strokeColor = .systemGray3
@@ -128,7 +130,7 @@ cell.backgroundConfiguration = background
 
 ```swift
 cell.configurationUpdateHandler = { cell, state in
-    var background = UIBackgroundConfiguration.listGroupedCell()
+    var background = UIBackgroundConfiguration.listCell()
     
     if state.isHighlighted {
         background.backgroundColor = .systemGray4
@@ -152,7 +154,7 @@ cell.configurationUpdateHandler = { cell, state in
 ```swift
 // ❌ Setting backgroundConfiguration resets backgroundColor and backgroundView to nil.
 // Never mix old and new APIs on the same cell.
-cell.backgroundConfiguration = UIBackgroundConfiguration.listGroupedCell()
+cell.backgroundConfiguration = UIBackgroundConfiguration.listCell()
 cell.backgroundColor = .red  // ❌ Conflicts — will be overwritten
 cell.backgroundView = myCustomView // ❌ Conflicts
 ```
@@ -216,7 +218,7 @@ let registration = UICollectionView.CellRegistration<UICollectionViewListCell, I
         cell.contentConfiguration = content
         
         // Background
-        var background = UIBackgroundConfiguration.listGroupedCell().updated(for: state)
+        var background = UIBackgroundConfiguration.listCell().updated(for: state)
         if state.isSelected {
             background.backgroundColor = .systemBlue
         }
@@ -531,14 +533,15 @@ task.title = "Updated Title"    // Cell updates automatically — no snapshot ne
 task.isComplete = true          // Cell updates automatically
 ```
 
-❌ **Incorrect — manually reconfiguring snapshots for every property change (pre-observation pattern):**
+**No longer needed once observation tracking is on — still the correct pattern everywhere else.** Without the plist key on iOS 18–25, below iOS 18, or with models that are not `@Observable`, `reconfigureItems` remains the way to refresh a cell's content:
 
 ```swift
-// ❌ Verbose, error-prone, and now unnecessary for property changes
+// Redundant only when the cell's handler already tracks an @Observable model;
+// required for in-place content updates in every other setup.
 func taskDidChange(_ task: TaskModel) {
     var snapshot = dataSource.snapshot()
-    snapshot.reconfigureItems([task.id])       // ❌ Manual invalidation
-    dataSource.apply(snapshot, animatingDifferences: true) // ❌ Snapshot churn
+    snapshot.reconfigureItems([task.id])
+    dataSource.apply(snapshot, animatingDifferences: true)
 }
 ```
 
@@ -563,7 +566,7 @@ The feature works with both `UICollectionView` and `UITableView`, and with custo
 
 ## 7. Migrating from deprecated cell properties to content configurations
 
-The `textLabel`, `detailTextLabel`, and `imageView` properties on `UITableViewCell` were introduced in iOS 3, deprecated starting with iOS 14's modern configuration APIs, and produce compiler warnings in current Xcode. They are **mutually exclusive** with `contentConfiguration` — setting one nullifies the other.
+The `textLabel`, `detailTextLabel`, and `imageView` properties on `UITableViewCell` were introduced in iOS 3 and are marked deprecated in Apple's documentation in favor of iOS 14's configuration APIs. The SDK flags them as to-be-deprecated, so the compiler does not warn about them yet. They are **mutually exclusive** with `contentConfiguration` — setting one nullifies the other.
 
 ### Before and after
 

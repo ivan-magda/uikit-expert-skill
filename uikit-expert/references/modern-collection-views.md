@@ -22,11 +22,14 @@ struct Recipe: Identifiable {
 // Item identifier is Recipe.ID (UUID), not Recipe
 var dataSource: UICollectionViewDiffableDataSource<Section, Recipe.ID>!
 
+// Capture the registration, not `self`: the data source is stored on `self`,
+// so a provider that captures `self` strongly creates a retain cycle.
+let registration = cellRegistration
 dataSource = .init(collectionView: collectionView) {
     collectionView, indexPath, recipeID -> UICollectionViewCell? in
     let recipe = RecipeStore.shared.recipe(for: recipeID)
     return collectionView.dequeueConfiguredReusableCell(
-        using: self.cellRegistration, for: indexPath, item: recipe
+        using: registration, for: indexPath, item: recipe
     )
 }
 
@@ -174,7 +177,7 @@ func switchCellType(for itemID: Recipe.ID) {
 
 ---
 
-## 3. Compositional layout: section providers, caching, and orthogonal scrolling
+## 3. Compositional layout: section providers and orthogonal scrolling
 
 ### The section provider pattern
 
@@ -206,31 +209,9 @@ func createLayout() -> UICollectionViewLayout {
 }
 ```
 
-### Layout section caching for scroll performance
+### Do not cache sections by index
 
-The section provider closure can fire multiple times per layout pass. For complex sections with many nested groups and supplementary items, **cache `NSCollectionLayoutSection` objects** and invalidate only when data structure changes.
-
-```swift
-// ✅ Cache sections to avoid repeated object allocation
-private var sectionLayoutCache: [Int: NSCollectionLayoutSection] = [:]
-
-func createLayout() -> UICollectionViewLayout {
-    UICollectionViewCompositionalLayout { [weak self] sectionIndex, env in
-        if let cached = self?.sectionLayoutCache[sectionIndex] {
-            return cached
-        }
-        let section = self?.buildSection(at: sectionIndex, environment: env)
-        self?.sectionLayoutCache[sectionIndex] = section
-        return section
-    }
-}
-
-// Invalidate on data changes that alter section structure
-func dataDidChange() {
-    sectionLayoutCache.removeAll()
-    collectionView.collectionViewLayout.invalidateLayout()
-}
-```
+UIKit re-invokes the section provider when the layout environment changes — rotation, window resize, size class, Dynamic Type. That is what makes the environment-adaptive sections above work. A cache keyed only by `sectionIndex` returns the section built for the previous container width or traits, so the layout goes stale after a rotation. Keep the provider cheap instead (build sections from small helper functions, avoid data lookups beyond the section identifier); if profiling ever justifies caching, the key must include every environment input the section depends on.
 
 ### Orthogonal scrolling and `visibleItemsInvalidationHandler`
 
@@ -354,7 +335,7 @@ private lazy var headerReg = UICollectionView.SupplementaryRegistration<HeaderVi
     elementKind: "section-header"
 ) { [weak self] headerView, _, indexPath in
     let section = self?.dataSource.snapshot().sectionIdentifiers[indexPath.section]
-    var config = UIListContentConfiguration.groupedHeader()
+    var config = UIListContentConfiguration.header()   // iOS 18+; `.groupedHeader()` on iOS 14–17 (deprecated in 18)
     config.text = section?.title
     headerView.contentConfiguration = config
 }
@@ -387,20 +368,22 @@ Swipe actions are set on the **layout configuration**, not on a delegate method:
 // ✅ Correct: configure swipe actions on the layout, not a delegate method
 var config = UICollectionLayoutListConfiguration(appearance: .plain)
 
-config.trailingSwipeActionsConfigurationProvider = { indexPath in
+// The layout retains these providers, and `self` retains the layout through
+// the collection view — capture `self` weakly to avoid a retain cycle.
+config.trailingSwipeActionsConfigurationProvider = { [weak self] indexPath in
     let delete = UIContextualAction(style: .destructive, title: "Delete") {
         _, _, completion in
-        self.deleteItem(at: indexPath)
+        self?.deleteItem(at: indexPath)
         completion(true)
     }
     delete.image = UIImage(systemName: "trash")
     return UISwipeActionsConfiguration(actions: [delete])
 }
 
-config.leadingSwipeActionsConfigurationProvider = { indexPath in
+config.leadingSwipeActionsConfigurationProvider = { [weak self] indexPath in
     let pin = UIContextualAction(style: .normal, title: "Pin") {
         _, _, completion in
-        self.pinItem(at: indexPath)
+        self?.pinItem(at: indexPath)
         completion(true)
     }
     pin.backgroundColor = .systemOrange
@@ -421,8 +404,8 @@ cell.accessories = [
     .reorder(displayed: .whenEditing),                // drag handle
     .detail(displayed: .whenNotEditing, actionHandler: { /* info tap */ }),
     .multiselect(displayed: .whenEditing),            // circular checkbox
-    .outline(displayed: .always,                      // expand/collapse
-             options: .init(style: .header)),
+    .outlineDisclosure(displayed: .always,            // expand/collapse
+                       options: .init(style: .header)),
     .label(text: "99+")                               // trailing badge label
 ]
 ```
@@ -621,7 +604,7 @@ cell.backgroundColor = .systemBackground
 cell.selectedBackgroundView = selectedView
 
 // After — use UIBackgroundConfiguration exclusively
-var bg = UIBackgroundConfiguration.listGroupedCell()
+var bg = UIBackgroundConfiguration.listCell()   // iOS 18+; `.listGroupedCell()` on iOS 14–17 (deprecated in 18)
 bg.backgroundColor = .systemBackground
 cell.backgroundConfiguration = bg
 ```
@@ -644,7 +627,7 @@ cell.backgroundConfiguration = bg
 
 ### What you gain by migrating
 
-UICollectionView with list layout gives you everything UITableView offers **plus** the ability to mix list sections with grid and carousel sections in the same view, orthogonal scrolling, per-section layout customization, `NSDiffableDataSourceSectionSnapshot` for expandable/collapsible outlines, multi-column iPad sidebar support via `.sidebar` appearance, and a richer cell accessories system with functional accessories like `.outline()` and `.multiselect()`. The **content configuration system** (`UIListContentConfiguration`, `UIBackgroundConfiguration`) works identically in both UITableView and UICollectionView cells, making the migration of cell content straightforward.
+UICollectionView with list layout gives you everything UITableView offers **plus** the ability to mix list sections with grid and carousel sections in the same view, orthogonal scrolling, per-section layout customization, `NSDiffableDataSourceSectionSnapshot` for expandable/collapsible outlines, multi-column iPad sidebar support via `.sidebar` appearance, and a richer cell accessories system with functional accessories like `.outlineDisclosure()` and `.multiselect()`. The **content configuration system** (`UIListContentConfiguration`, `UIBackgroundConfiguration`) works identically in both UITableView and UICollectionView cells, making the migration of cell content straightforward.
 
 ## Conclusion
 
@@ -661,6 +644,6 @@ The modern UIKit collection view stack is built on four interlocking pillars. **
 - [ ] `applySnapshotUsingReloadData` used for initial population to bypass diff computation
 - [ ] `UICollectionView.CellRegistration` used — no string-based `register` / `dequeueReusableCell`
 - [ ] `UICollectionViewCompositionalLayout` used for non-trivial layouts — not `FlowLayout`
-- [ ] Section providers cache `NSCollectionLayoutSection` objects where possible
+- [ ] Section provider adapts to `environment`; no section cache keyed only by section index
 - [ ] Self-sizing cells use `.estimated()` on both item AND group for the self-sizing axis
 - [ ] Self-sizing cells have unambiguous top-to-bottom constraint chain in `contentView`

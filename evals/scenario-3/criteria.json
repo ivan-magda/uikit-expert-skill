@@ -13,8 +13,8 @@
       "max_score": 10
     },
     {
-      "name": "Timer invalidated in viewWillDisappear",
-      "description": "timer?.invalidate() (or equivalent) is called inside an override of viewWillDisappear(_:) — NOT in deinit or viewDidDisappear",
+      "name": "Timer invalidated when the view disappears",
+      "description": "timer?.invalidate() (or equivalent) is called inside an override of viewWillDisappear(_:) or viewDidDisappear(_:) — NOT only in deinit",
       "max_score": 12
     },
     {

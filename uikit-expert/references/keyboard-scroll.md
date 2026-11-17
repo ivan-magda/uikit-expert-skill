@@ -470,7 +470,7 @@ The interaction with keyboard handling is direct: when you set `contentInset.bot
 ```swift
 private func createToolbar() -> UIToolbar {
     let toolbar = UIToolbar(
-        frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 44)
+        frame: CGRect(x: 0, y: 0, width: view.bounds.width, height: 44)
     )
     toolbar.sizeToFit()
     
@@ -609,26 +609,42 @@ override func viewDidDisappear(_ animated: Bool) {
 
 WWDC 2025 (June 9, 2025) introduced iOS 26 with one major keyboard API improvement: **strongly typed notification messages** that eliminate the fragile `userInfo` dictionary casting pattern.
 
-### The new `NotificationCenter.Message` API
+### The new `NotificationCenter.MainActorMessage` API
 
-UIKit in iOS 26 represents each keyboard notification as a dedicated `NotificationCenter.Message` type. Properties like `animationDuration` and `endFrame` are available directly on the message object.
+UIKit in iOS 26 represents each keyboard notification as a dedicated message type — for example `UIResponder.KeyboardWillShowMessage`, whose subject is the `UIScreen`. Properties like `animationDuration`, `endFrame`, and `screen` are available directly on the message. Observe it with `addObserver(of:for:using:)` and the `.keyboardWillShow` identifier.
 
 ### ✅ Correct: iOS 26 strongly typed keyboard notifications
 
 ```swift
-// iOS 26+: Type-safe keyboard notification handling
-NotificationCenter.default.addObserver(
-    forMessage: UIResponder.keyboardWillShowMessage
-) { message in
-    let duration = message.animationDuration   // Double, no casting
-    let frame = message.endFrame               // CGRect, no casting
-    
-    UIView.animate(withDuration: duration) {
-        self.bottomConstraint.constant = frame.height
-        self.view.layoutIfNeeded()
+// iOS 26+: type-safe keyboard notification handling.
+// With a deployment target below iOS 26, store the token as `Any?`
+// (`NotificationCenter.ObservationToken` is itself iOS 26+).
+private var keyboardToken: NotificationCenter.ObservationToken?
+
+func startObservingKeyboard() {
+    keyboardToken = NotificationCenter.default.addObserver(
+        of: UIScreen.self, for: .keyboardWillShow
+    ) { [weak self] message in
+        guard let self else { return }
+        let duration = message.animationDuration   // TimeInterval, no casting
+
+        // endFrame is in screen coordinates — convert, then subtract the safe area
+        let frame = view.convert(message.endFrame, from: message.screen.coordinateSpace)
+        let overlap = max(0, view.bounds.maxY - frame.minY - view.safeAreaInsets.bottom)
+
+        UIView.animate(withDuration: duration, delay: 0, options: .flushUpdates) {
+            self.bottomConstraint.constant = overlap
+        }
     }
 }
+
+func stopObservingKeyboard() {
+    if let keyboardToken { NotificationCenter.default.removeObserver(keyboardToken) }
+    keyboardToken = nil
+}
 ```
+
+The same rules as the legacy path apply: keep the token, capture `self` weakly, and convert the frame before using it.
 
 ### ❌ Incorrect: old userInfo dictionary parsing (still works but now legacy)
 
@@ -661,7 +677,7 @@ The decision tree for keyboard handling in 2024–2026 is straightforward. **For
 
 When supporting older versions, the notification-based approach requires three non-negotiable steps: convert the keyboard frame from screen to view coordinates, subtract `view.safeAreaInsets.bottom` from the height, and bit-shift the animation curve by 16 to create `UIView.AnimationOptions`. Always read `adjustedContentInset` (not `contentInset`) when calculating visible content area. For input bars, set `autoresizingMask = .flexibleHeight`, override `intrinsicContentSize`, and clean up in `viewDidDisappear` to avoid the `inputAccessoryView` retain cycle.
 
-On iOS 26, the new strongly typed `NotificationCenter.Message` APIs eliminate the most error-prone part of the legacy approach — though if you're targeting iOS 26, you should already be using `UIKeyboardLayoutGuide` instead of notifications entirely.
+On iOS 26, the new strongly typed `NotificationCenter.MainActorMessage` APIs eliminate the most error-prone part of the legacy approach — though if you're targeting iOS 26, you should already be using `UIKeyboardLayoutGuide` instead of notifications entirely.
 ---
 
 ## Summary Checklist

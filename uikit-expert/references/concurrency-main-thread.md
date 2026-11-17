@@ -64,8 +64,11 @@ class SearchViewController: UIViewController {
     private var searchTask: Task<Void, Never>?
     private var monitorTask: Task<Void, Never>?
 
-    override func viewDidLoad() {
-        super.viewDidLoad()
+    // Started per appearance because it is cancelled per disappearance —
+    // started in viewDidLoad it would never run again after the first pop back.
+    override func viewIsAppearing(_ animated: Bool) {
+        super.viewIsAppearing(animated)
+        monitorTask?.cancel()
         monitorTask = Task { [weak self] in
             for await notification in NotificationCenter.default
                 .notifications(named: UIApplication.didEnterBackgroundNotification) {
@@ -78,7 +81,8 @@ class SearchViewController: UIViewController {
     func search(query: String) {
         searchTask?.cancel()                    // Cancel previous search
         searchTask = Task {
-            defer { searchTask = nil }          // Clean up reference
+            // No `defer { searchTask = nil }` here: a cancelled older task resumes
+            // later and would clear the reference to the newer task.
             let results = try? await api.search(query)
             guard !Task.isCancelled else { return }  // Check before UI update
             tableView.reloadData()
@@ -648,11 +652,11 @@ Swift concurrency in UIKit has matured from an opt-in experiment to the default 
 ## Summary Checklist
 
 - [ ] No redundant `@MainActor` on `UIViewController` subclasses (already inherited from UIKit)
-- [ ] Task references stored as properties and cancelled in `viewDidDisappear`
+- [ ] Task references stored as properties and cancelled in `viewDidDisappear`; appearance-scoped tasks started in an appearance callback so they resume on return
 - [ ] `Task.isCancelled` checked after every `await` before UI updates
 - [ ] No `Task.detached` for UI work — using `Task {}` to inherit MainActor isolation
 - [ ] Explicit `@MainActor` on closures or `MainActor.run` when hopping back from background
-- [ ] No `DispatchQueue.main.sync` from background (deadlock) — using `await MainActor.run` instead
+- [ ] No `DispatchQueue.main.sync` to hop to the main thread (blocks the caller; deadlocks when already on main) — using `await MainActor.run` instead
 - [ ] `nonisolated` used on methods that don't touch UI to allow background execution
 - [ ] `@preconcurrency` used as bridge for legacy protocol conformances during Swift 6 migration
 - [ ] Actor reentrancy considered: state re-validated after every `await`
